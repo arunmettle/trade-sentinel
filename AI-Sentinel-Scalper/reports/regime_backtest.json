@@ -1,0 +1,50 @@
+{
+  "dynamic": {
+    "final_equity": 18359987.33345189,
+    "profit_pct": 1834.9987333451888,
+    "sharpe": 81.09854088621448,
+    "max_drawdown_pct": 0.23493094537671597,
+    "trade_count": 3382,
+    "regime_stats": {
+      "CRUISE": {
+        "pnl": 1206819.7676573507,
+        "n": 13974,
+        "avg_pnl_per_bar": 86.36179817213043
+      },
+      "HUNT": {
+        "pnl": 16663745.987929378,
+        "n": 21514,
+        "avg_pnl_per_bar": 774.5535924481444
+      },
+      "STORM": {
+        "pnl": 479421.5778651597,
+        "n": 7712,
+        "avg_pnl_per_bar": 62.165661030233366
+      }
+    }
+  },
+  "static": {
+    "final_equity": 19490186.908977326,
+    "profit_pct": 1948.0186908977325,
+    "sharpe": 82.49714071331829,
+    "max_drawdown_pct": 0.2391570399542058,
+    "trade_count": 3503,
+    "regime_stats": {
+      "CRUISE": {
+        "pnl": 0.0,
+        "n": 0,
+        "avg_pnl_per_bar": 0.0
+      },
+      "HUNT": {
+        "pnl": 19480186.908977326,
+        "n": 43200,
+        "avg_pnl_per_bar": 450.9302525226233
+      },
+      "STORM": {
+        "pnl": 0.0,
+        "n": 0,
+        "avg_pnl_per_bar": 0.0
+      }
+    }
+  }
+}
