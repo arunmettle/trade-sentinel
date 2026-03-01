@@ -117,6 +117,8 @@ if state_gap > 0.05:
         first_ts = st.session_state["mismatch_first_ts"]
     if datetime.now().timestamp() - float(first_ts) > 30:
         st.error("⚠️ CRITICAL: EXCHANGE/BOT STATE MISMATCH")
+        if state_gap > 10:
+            st.error("⚠️ Delta calculation unstable (near-zero spot leg with open perp). Use Close-All + Re-Sync.")
 else:
     st.session_state.pop("mismatch_first_ts", None)
 
@@ -203,10 +205,19 @@ max_drift = max(drift_vals) if drift_vals else 0.0
 fees_24h = float(sim_trades["fee"].sum()) if not sim_trades.empty and "fee" in sim_trades.columns else 0.0
 
 k1, k2, k3, k4 = st.columns(4)
+# System Integrity LED
+integrity_gap = state_gap
+if integrity_gap <= 0.01:
+    integrity = "🟢 GREEN"
+elif integrity_gap <= 0.05:
+    integrity = "🟡 YELLOW"
+else:
+    integrity = "🔴 RED"
+
 k1.metric("Regime Status", f"{regime_color(active_regime)} {active_regime}")
 k2.metric("Total Delta", f"{total_delta:.3f}")
-k3.metric("Drift Meter (max)", f"{max_drift:.2%}")
-k4.metric("24h Fee Total (sim)", f"${fees_24h:.2f}")
+k3.metric("Drift Meter (max)", f"{max_drift:.2%}" if max_drift <= 10 else "N/A")
+k4.metric("System Integrity", integrity)
 
 
 # ---------- Main Deck ----------

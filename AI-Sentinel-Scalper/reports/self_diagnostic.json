@@ -1,0 +1,21 @@
+{
+  "status": "READY",
+  "checks": [
+    {
+      "file": "/home/arun/.openclaw/workspace/AI-Sentinel-Scalper/src/guardian.py",
+      "ok": true
+    },
+    {
+      "file": "/home/arun/.openclaw/workspace/AI-Sentinel-Scalper/src/execution.py",
+      "ok": true
+    },
+    {
+      "file": "/home/arun/.openclaw/workspace/AI-Sentinel-Scalper/src/exchange_client.py",
+      "ok": true
+    },
+    {
+      "file": "/home/arun/.openclaw/workspace/AI-Sentinel-Scalper/dashboard.py",
+      "ok": true
+    }
+  ]
+}
