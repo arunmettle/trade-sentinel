@@ -219,23 +219,73 @@ class Guardian:
         diff_qty = abs(spot_qty * (actual_delta - target_delta))
         side = "sell" if actual_delta > target_delta else "buy"
 
-        if not self.config.dry_run:
-            self._ensure_exchange()
-            self.exchange.create_order(symbol, "market", side, diff_qty, params={"reduceOnly": False})
+        if self.config.dry_run:
+            event = {
+                "ts": int(time.time()),
+                "symbol": symbol,
+                "target_delta": round(target_delta, 6),
+                "actual_delta": round(actual_delta, 6),
+                "drift": round(drift, 6),
+                "action": side,
+                "qty": round(diff_qty, 8),
+                "spread": round(spread, 6),
+                "dry_run": True,
+                "status": "REBALANCE_SUCCESSFUL",
+            }
+            self._log_rebalance_event(event)
+            return {"checked": True, "rebalanced": True, **event}
 
-        event = {
+        # Hard-state verification (zero-trust): submit, then verify on position state.
+        self._ensure_exchange()
+        before_perp = perp_qty
+        order = self.exchange.create_order(symbol=symbol, type="market", side=side, amount=diff_qty, params={"reduceOnly": False})
+
+        verified = False
+        new_perp = before_perp
+        start = time.time()
+        while time.time() - start < 5.0:
+            time.sleep(0.5)
+            _, probe_perp = self._fetch_spot_and_perp_qty(symbol)
+            if abs(probe_perp - before_perp) > 1e-12:
+                verified = True
+                new_perp = probe_perp
+                break
+
+        if not verified:
+            fail_event = {
+                "ts": int(time.time()),
+                "symbol": symbol,
+                "target_delta": round(target_delta, 6),
+                "actual_delta": round(actual_delta, 6),
+                "drift": round(drift, 6),
+                "action": side,
+                "qty": round(diff_qty, 8),
+                "spread": round(spread, 6),
+                "dry_run": False,
+                "status": "REBALANCE_FAILED",
+                "order_id": str(order.get("id")),
+                "reason": "position_not_changed_within_5s",
+            }
+            self._log_rebalance_event(fail_event)
+            return {"checked": True, "rebalanced": False, **fail_event}
+
+        new_actual = (spot_qty - new_perp) / spot_qty if spot_qty > 0 else 0.0
+        new_drift = abs(new_actual - target_delta)
+        ok_event = {
             "ts": int(time.time()),
             "symbol": symbol,
             "target_delta": round(target_delta, 6),
-            "actual_delta": round(actual_delta, 6),
-            "drift": round(drift, 6),
+            "actual_delta": round(new_actual, 6),
+            "drift": round(new_drift, 6),
             "action": side,
             "qty": round(diff_qty, 8),
             "spread": round(spread, 6),
-            "dry_run": self.config.dry_run,
+            "dry_run": False,
+            "status": "REBALANCE_SUCCESSFUL",
+            "order_id": str(order.get("id")),
         }
-        self._log_rebalance_event(event)
-        return {"checked": True, "rebalanced": True, **event}
+        self._log_rebalance_event(ok_event)
+        return {"checked": True, "rebalanced": True, **ok_event}
 
     def persist_state(self, payload: dict[str, Any]) -> None:
         self.config.state_path.parent.mkdir(parents=True, exist_ok=True)
