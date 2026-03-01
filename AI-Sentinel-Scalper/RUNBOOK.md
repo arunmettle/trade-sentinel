@@ -2,6 +2,14 @@
 
 ## 1) Setup
 
+### Preflight check (required before live mode)
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/preflight.py
+```
+
+Must return `"ok": true` before enabling `dry_run=false`.
+
 ```bash
 cd AI-Sentinel-Scalper
 python3 -m venv .venv
@@ -58,6 +66,7 @@ PYTHONPATH=. .venv/bin/python scripts/watch_sentiment.py
 - Uses watchdog observer when available (falls back to mtime polling).
 - Applies hysteresis (`80` on / `75` off) + minimum trade notional guard.
 - Applies API weight guard: max one sync per 30s unless score jump > 20.
+- In dry-run, writes shadow trades to `logs/sim_trades.csv` and portfolio to `logs/simulated_portfolio.json`.
 
 ### Dashboard
 

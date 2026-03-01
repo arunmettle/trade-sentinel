@@ -83,8 +83,20 @@ class DeltaExecutor:
             return {"ok": True, "action": "skip_small_notional", "target_delta": target_delta}
 
         if self.cfg.dry_run:
+            from src.simulator import DryRunSimulator
+
+            sim = DryRunSimulator(Path(__file__).resolve().parents[1])
+            side = "buy" if target_delta > 0 else "sell"
+            qty = target_notional / current_price
+            trade = sim.simulate_order(self.cfg.symbol, side, qty, current_price, order_type="limit")
             LOG.info("dry_run sync | score=%.2f target_delta=%.3f notional=%.2f", score, target_delta, target_notional)
-            return {"ok": True, "action": "dry_run_sync", "target_delta": target_delta, "notional": target_notional}
+            return {
+                "ok": True,
+                "action": "dry_run_sync",
+                "target_delta": target_delta,
+                "notional": target_notional,
+                "sim_trade": trade,
+            }
 
         ex = self._ensure_exchange()
         side = "buy" if target_delta > 0 else "sell"

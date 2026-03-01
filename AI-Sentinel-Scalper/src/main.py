@@ -9,7 +9,7 @@ from pathlib import Path
 
 from src.hybrid_manager import HybridManager
 from src.sentiment_agent import compute_market_pulse, write_gate
-from src.validator import maybe_validate_startup
+from src.validators import validate_bybit_netting_mode
 
 LOG = logging.getLogger("orchestrator")
 
@@ -102,7 +102,7 @@ def run_loop(base_dir: Path) -> None:
         )
         if bool(live.get("exchange", {}).get("testnet", True)):
             ex.set_sandbox_mode(True)
-        if not maybe_validate_startup(ex, symbol, dry_run=False):
+        if not validate_bybit_netting_mode(ex, symbol):
             raise RuntimeError("Startup preflight failed: account must be in Netting/One-Way mode")
 
     LOG.info("orchestrator started | loop=%ss", cfg.loop_seconds)
