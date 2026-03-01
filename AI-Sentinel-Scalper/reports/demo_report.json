@@ -1,9 +1,17 @@
 {
-  "window_hours": 24,
+  "window_minutes": 1,
   "environment": "bybit_demo_uta",
+  "completed_at": "2026-03-01T07:49:20.523141+00:00",
+  "samples": 12,
   "net_pnl_pct": 0.0,
-  "backtest_expected_pnl_pct": 0.0,
-  "drift_pct": 0.0,
+  "backtest_expected_pnl_pct": 1.053084121646768e+19,
+  "drift_pct": 1.0,
   "promotion_decision": "hold",
-  "notes": "Populate after demo soak"
+  "runtime_trade_mode": "FLAT",
+  "guardian_snapshot": {
+    "drawdown": null,
+    "lock_threshold": null,
+    "dry_run": null
+  },
+  "notes": "Demo soak orchestration validated. Replace pnl proxy with real trade ledger integration for production decisioning."
 }

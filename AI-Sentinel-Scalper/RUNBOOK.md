@@ -41,6 +41,14 @@ python3 src/main.py
 
 Writes: `logs/runtime_state.json`, `config/sentiment_gate.json`
 
+### Demo soak automation
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/run_demo_soak.py --minutes 1440 --interval-seconds 60
+```
+
+Writes: `reports/demo_report.json`
+
 ### Dashboard
 
 ```bash
