@@ -113,6 +113,22 @@ class Guardian:
             raise RuntimeError("start_equity is not initialized")
         return max(0.0, (self.start_equity - current_equity) / self.start_equity)
 
+    def calculate_drift(self, spot_qty: float, perp_qty: float, target_delta: float, total_equity: float) -> tuple[float, float, str | None]:
+        """Return (actual_delta, drift, status_override).
+
+        Safety guard: when account equity is effectively flat, avoid unstable ratio math.
+        """
+        if total_equity < 10.0:
+            return 0.0, 0.0, "FLAT_LEGAL"
+
+        if spot_qty <= 0:
+            # no spot leg => treat as fully hedged drift not computable by ratio
+            return 0.0, abs(0.0 - target_delta), "NO_SPOT_LEG"
+
+        actual_delta = (spot_qty - perp_qty) / spot_qty
+        drift = abs(actual_delta - target_delta)
+        return actual_delta, drift, None
+
     def _cancel_all_orders(self) -> None:
         self._ensure_exchange()
         self.exchange.cancel_all_orders(self.config.symbol)
@@ -204,11 +220,30 @@ class Guardian:
 
     def check_position_drift(self, symbol: str, target_delta: float, drift_deadzone: float) -> dict[str, float | bool | str]:
         spot_qty, perp_qty = self._fetch_spot_and_perp_qty(symbol)
-        if spot_qty <= 0:
-            return {"checked": False, "symbol": symbol, "reason": "no_spot"}
+        total_equity = self.fetch_total_equity()
 
-        actual_delta = (spot_qty - perp_qty) / spot_qty
-        drift = abs(actual_delta - target_delta)
+        actual_delta, drift, status_override = self.calculate_drift(spot_qty, perp_qty, target_delta, total_equity)
+        if status_override == "FLAT_LEGAL":
+            return {
+                "checked": True,
+                "symbol": symbol,
+                "rebalanced": False,
+                "actual_delta": actual_delta,
+                "drift": drift,
+                "status": "FLAT_LEGAL",
+                "reason": "total_equity_below_10",
+            }
+        if status_override == "NO_SPOT_LEG":
+            return {
+                "checked": True,
+                "symbol": symbol,
+                "rebalanced": False,
+                "actual_delta": actual_delta,
+                "drift": drift,
+                "status": "NO_SPOT_LEG",
+                "reason": "no_spot",
+            }
+
         spread = self._fetch_spread(symbol)
 
         if drift <= drift_deadzone:
