@@ -106,9 +106,9 @@ Status legend: `TODO` | `IN_PROGRESS` | `BLOCKED` | `DONE`
 - [x] **DONE** Implement Journaler memory updater (`src/journaler.py` appends to `memory/long_term_memory.md`).
 
 ### M4 — Sentiment + Orchestration
-- [ ] **TODO** Implement `sentiment_agent.py` with RSS ingest + JSON gate output.
-- [ ] **TODO** Implement `main.py` orchestrator with schedule hooks.
-- [ ] **TODO** Add passive/flat mode switch integration across components.
+- [x] **DONE** Implement `sentiment_agent.py` (phase-1 heuristic) + JSON gate output.
+- [x] **DONE** Implement `main.py` orchestrator skeleton with schedule loop hooks.
+- [x] **DONE** Add passive/flat mode switch integration (`resolve_trade_mode`) across strategy + sentiment.
 
 ### M5 — Dashboard & Operations
 - [ ] **TODO** Build `dashboard.py` reading live structured files.
