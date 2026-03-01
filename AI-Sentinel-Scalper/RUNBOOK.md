@@ -49,6 +49,15 @@ PYTHONPATH=. .venv/bin/python scripts/run_demo_soak.py --minutes 1440 --interval
 
 Writes: `reports/demo_report.json`
 
+### Sentiment watcher executor (event-driven)
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/watch_sentiment.py
+```
+
+- Uses watchdog observer when available (falls back to mtime polling).
+- Applies hysteresis (`80` on / `75` off) + minimum trade notional guard.
+
 ### Dashboard
 
 ```bash

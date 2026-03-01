@@ -30,6 +30,11 @@
     "rebalance_log": "logs/rebalance_events.csv",
     "journal_memory": "memory/long_term_memory.md"
   },
+  "hybrid": {
+    "hysteresis_on": 80,
+    "hysteresis_off": 75,
+    "min_trade_usd": 100
+  },
   "ops": {
     "promotion_mode": "manual_first",
     "log_level": "INFO"

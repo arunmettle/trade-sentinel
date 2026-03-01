@@ -51,9 +51,11 @@ def resolve_trade_mode(strategy: dict, sentiment_gate: dict) -> dict:
 
 def write_runtime_state(base_dir: Path, payload: dict) -> None:
     p = base_dir / "logs" / "runtime_state.json"
+    tmp = base_dir / "logs" / "runtime_state.json.tmp"
     p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("w", encoding="utf-8") as f:
+    with tmp.open("w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
+    tmp.replace(p)
 
 
 def run_once(base_dir: Path, headlines: list[str] | None = None) -> dict:
