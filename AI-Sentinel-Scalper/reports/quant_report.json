@@ -1,15 +1,15 @@
 {
-  "strategy_id": "phase1_backtest",
+  "strategy_id": "phase1_backtest_real",
   "period": {
     "start": "0",
-    "end": "1999"
+    "end": "43199"
   },
   "metrics": {
-    "net_profit_pct": 0.003630085683460127,
-    "max_drawdown_pct": 0.022007461708516893,
-    "sharpe_ratio": 2.2994020677825326,
-    "profit_factor": 1.0096456147229107,
-    "win_rate": 2.54978354978355
+    "net_profit_pct": 1.053084121646768e+19,
+    "max_drawdown_pct": 0.1259317910070265,
+    "sharpe_ratio": 194.32458901781678,
+    "profit_factor": 4.126434066890959,
+    "win_rate": 2.048614741244119
   },
   "verdict": "hold",
   "observation": "Initial vectorized baseline; replace signal with strategy contract input."

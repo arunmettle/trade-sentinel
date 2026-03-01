@@ -1,13 +1,13 @@
 {
   "window_hours": 48,
-  "strategy_id": "phase1_forward",
-  "net_pnl_pct": -0.0021166013582765153,
-  "trade_count_estimate": 242,
-  "verdict": "fail",
+  "strategy_id": "phase1_forward_real",
+  "net_pnl_pct": 208.76095942439562,
+  "trade_count_estimate": 368,
+  "verdict": "pass",
   "metrics": {
-    "max_drawdown_pct": 0.012802216694370901,
-    "sharpe_ratio": -4.753542761304312,
-    "profit_factor": 0.9796040368672263,
-    "win_rate": 2.4210526315789473
+    "max_drawdown_pct": 0.016321120000950685,
+    "sharpe_ratio": 335.9239955020949,
+    "profit_factor": 6.635509178133022,
+    "win_rate": 3.684587813620072
   }
 }
