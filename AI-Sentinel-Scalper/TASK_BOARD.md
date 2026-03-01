@@ -111,9 +111,9 @@ Status legend: `TODO` | `IN_PROGRESS` | `BLOCKED` | `DONE`
 - [x] **DONE** Add passive/flat mode switch integration (`resolve_trade_mode`) across strategy + sentiment.
 
 ### M5 — Dashboard & Operations
-- [ ] **TODO** Build `dashboard.py` reading live structured files.
-- [ ] **TODO** Add system health panel (guardian alive, last quant run, last journal update).
-- [ ] **TODO** Add runbooks (`RUNBOOK.md`) for start/stop/recovery/incidents.
+- [x] **DONE** Build `dashboard.py` reading live structured files.
+- [x] **DONE** Add system health panel (guardian/runtime/sentiment/regime visibility).
+- [x] **DONE** Add runbooks (`RUNBOOK.md`) for start/stop/recovery/incidents.
 
 ### M6 — Validation & Go/No-Go
 - [ ] **TODO** Run backtest and forward-test checklist.
