@@ -1,0 +1,13 @@
+{
+  "daily_equity_lock_pct": 0.02,
+  "require_sl_tp_on_order": true,
+  "regime_c_trade_enabled": false,
+  "post_only_preferred": true,
+  "max_stop_loss_pct": 0.008,
+  "max_position_size_pct": 0.02,
+  "killswitch": {
+    "cancel_all_orders": true,
+    "close_all_positions_market": true,
+    "halt_executor_on_trigger": true
+  }
+}

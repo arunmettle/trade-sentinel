@@ -48,6 +48,14 @@ Build a production-ready, safety-first Bybit V5 scalping system with:
 - Guardian trigger checks at practical interval (e.g., 1–2s) while keeping exchange rate limits safe.
 - Promotion decisions are **manual-confirmed** first, then optional automation.
 
+### Architecture Decisions (Locked for Phase 1)
+- Canonical runtime config filename: `config/live_config.json`
+- Canonical template filename: `config/live_config.example.json`
+- Canonical risk policy file: `config/risk_limits.json`
+- Guardian interval policy: default `1s` (`runtime.guardian_loop_seconds`) and configurable
+- Promotion policy: `manual_first` until demo validation is stable
+- Scope policy: single-symbol execution in phase 1; multi-symbol deferred
+
 ---
 
 ## 2) Token-Optimization Strategy (Development Process)

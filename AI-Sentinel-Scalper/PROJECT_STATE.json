@@ -1,0 +1,24 @@
+{
+  "version": "0.1.0",
+  "last_updated": "2026-03-01",
+  "current_milestone": "M1 - Scaffold & Contracts",
+  "assumptions": [
+    "Phase 1 is single-symbol only: BTC/USDT:USDT",
+    "Promotion to live is manual-confirmed first",
+    "Guardian loop interval is configurable and defaults to 1 second",
+    "Regime C disables new trades"
+  ],
+  "decisions": [
+    "Canonical runtime config filename: config/live_config.json",
+    "Template/example config filename: config/live_config.example.json",
+    "Risk policy source: config/risk_limits.json",
+    "No plaintext credentials in source code; use environment variables"
+  ],
+  "next_actions": [
+    "Implement src/guardian.py core logic",
+    "Add guardian unit tests",
+    "Create schema stubs for strategy/quant/journal/sentiment/guardian",
+    "Build orchestrator skeleton"
+  ],
+  "blockers": []
+}

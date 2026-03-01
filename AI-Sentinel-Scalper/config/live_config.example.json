@@ -1,0 +1,31 @@
+{
+  "environment": "demo",
+  "symbol": "BTC/USDT:USDT",
+  "exchange": {
+    "name": "bybit",
+    "defaultType": "future",
+    "testnet": true
+  },
+  "runtime": {
+    "dry_run": true,
+    "guardian_loop_seconds": 1,
+    "orchestrator_loop_seconds": 60,
+    "latency_passive_mode_ms": 250
+  },
+  "execution": {
+    "order_type_preference": "limit_post_only",
+    "require_sl_tp_on_order": true,
+    "max_open_positions": 1
+  },
+  "paths": {
+    "risk_limits": "config/risk_limits.json",
+    "sentiment_gate": "config/sentiment_gate.json",
+    "strategy": "config/live_strategy.json",
+    "guardian_state": "logs/guardian_state.json",
+    "journal_memory": "memory/long_term_memory.md"
+  },
+  "ops": {
+    "promotion_mode": "manual_first",
+    "log_level": "INFO"
+  }
+}
