@@ -124,9 +124,9 @@ Status legend: `TODO` | `IN_PROGRESS` | `BLOCKED` | `DONE`
 ---
 
 ## 4) Immediate Next Actions (Execution Queue)
-1. Freeze canonical project structure and file contracts.
-2. Create scaffold + config examples + schema docs.
-3. Build Guardian first (safety-critical path).
+1. Track A backtest data pipeline: funding-rate + basis + fee assumptions.
+2. Track B implementation into quant runner and run 90-day backtest.
+3. Compare Track A vs Track B on unified scorecard and choose forward lane.
 
 ---
 
