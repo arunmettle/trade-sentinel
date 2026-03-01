@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JournalEntry",
+  "type": "object",
+  "required": ["timestamp", "performance", "key_learning", "architect_instruction"],
+  "properties": {
+    "timestamp": {"type": "string"},
+    "performance": {
+      "type": "object",
+      "required": ["win_rate", "pnl", "avg_slippage"],
+      "properties": {
+        "win_rate": {"type": "number"},
+        "pnl": {"type": "number"},
+        "avg_slippage": {"type": "number"}
+      }
+    },
+    "key_learning": {"type": "string"},
+    "architect_instruction": {"type": "string"},
+    "technical_debt": {"type": "string"}
+  }
+}

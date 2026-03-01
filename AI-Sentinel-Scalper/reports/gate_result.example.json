@@ -1,0 +1,7 @@
+{
+  "backtest_gate": "pass",
+  "forward_gate": "pending",
+  "demo_gate": "pending",
+  "promotion_decision": "hold",
+  "reason": "Awaiting forward and demo validation windows"
+}

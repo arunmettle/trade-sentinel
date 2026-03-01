@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GuardianState",
+  "type": "object",
+  "required": ["ts"],
+  "properties": {
+    "ts": {"type": "integer"},
+    "symbol": {"type": "string"},
+    "start_equity": {"type": "number"},
+    "current_equity": {"type": "number"},
+    "drawdown": {"type": "number"},
+    "lock_threshold": {"type": "number"},
+    "dry_run": {"type": "boolean"},
+    "status": {"type": "string"},
+    "event": {"type": "string"},
+    "reason": {"type": "string"}
+  }
+}

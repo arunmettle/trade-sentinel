@@ -1,0 +1,21 @@
+{
+  "regime": "C",
+  "status": "flat",
+  "parameters": {
+    "timeframe": "1m",
+    "indicators": {
+      "ema_fast": 9,
+      "ema_slow": 21,
+      "rsi_period": 14,
+      "bb_std_dev": 2.5
+    },
+    "risk": {
+      "stop_loss_pct": 0.005,
+      "take_profit_pct": 0.012,
+      "max_position_size_pct": 0.02,
+      "equity_lock_trigger": 0.02
+    },
+    "entry_logic": "placeholder",
+    "exit_logic": "placeholder"
+  }
+}

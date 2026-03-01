@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StrategyConfig",
+  "type": "object",
+  "required": ["regime", "status", "parameters"],
+  "properties": {
+    "regime": {"type": "string", "enum": ["A", "B", "C"]},
+    "status": {"type": "string", "enum": ["active", "flat", "paused"]},
+    "parameters": {
+      "type": "object",
+      "required": ["timeframe", "risk", "entry_logic", "exit_logic"],
+      "properties": {
+        "timeframe": {"type": "string"},
+        "indicators": {"type": "object"},
+        "risk": {
+          "type": "object",
+          "required": ["stop_loss_pct", "take_profit_pct", "max_position_size_pct", "equity_lock_trigger"],
+          "properties": {
+            "stop_loss_pct": {"type": "number", "minimum": 0, "maximum": 0.008},
+            "take_profit_pct": {"type": "number", "minimum": 0},
+            "max_position_size_pct": {"type": "number", "minimum": 0, "maximum": 0.05},
+            "equity_lock_trigger": {"type": "number", "minimum": 0, "maximum": 0.1}
+          }
+        },
+        "entry_logic": {"type": "string"},
+        "exit_logic": {"type": "string"}
+      }
+    }
+  }
+}

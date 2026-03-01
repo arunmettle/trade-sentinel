@@ -100,10 +100,10 @@ Status legend: `TODO` | `IN_PROGRESS` | `BLOCKED` | `DONE`
 - [x] **DONE** Add startup self-check (permissions, API connectivity, account mode).
 
 ### M3 — Strategy & Validation Pipeline
-- [ ] **TODO** Implement Architect I/O contract (`strategy.json`).
-- [ ] **TODO** Implement Quant backtest runner (vectorized, fees/slippage, metrics).
-- [ ] **TODO** Build gate evaluator (`gate_result.json`) for promote/hold/reject.
-- [ ] **TODO** Implement Journaler memory updater (`memory/long_term_memory.md`).
+- [x] **DONE** Implement Architect I/O contract (`config/live_strategy.json` + schema).
+- [x] **DONE** Implement Quant backtest runner (vectorized, fees/slippage, metrics) in `src/quant_runner.py`.
+- [x] **DONE** Build gate evaluator (`reports/gate_result.example.json`, `src/gate_evaluator.py`) for promote/hold/reject.
+- [x] **DONE** Implement Journaler memory updater (`src/journaler.py` appends to `memory/long_term_memory.md`).
 
 ### M4 — Sentiment + Orchestration
 - [ ] **TODO** Implement `sentiment_agent.py` with RSS ingest + JSON gate output.

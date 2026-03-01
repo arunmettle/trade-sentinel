@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SentimentGate",
+  "type": "object",
+  "required": ["last_update", "score", "status", "allow_trading"],
+  "properties": {
+    "last_update": {"type": "string"},
+    "score": {"type": "number", "minimum": 0, "maximum": 100},
+    "status": {"type": "string", "enum": ["FLAT", "CAUTIOUS", "AGGRESSIVE"]},
+    "allow_trading": {"type": "boolean"}
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuantReport",
+  "type": "object",
+  "required": ["strategy_id", "period", "metrics", "verdict"],
+  "properties": {
+    "strategy_id": {"type": "string"},
+    "period": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {"type": "string"},
+        "end": {"type": "string"}
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["net_profit_pct", "max_drawdown_pct", "sharpe_ratio", "profit_factor", "win_rate"],
+      "properties": {
+        "net_profit_pct": {"type": "number"},
+        "max_drawdown_pct": {"type": "number"},
+        "sharpe_ratio": {"type": "number"},
+        "profit_factor": {"type": "number"},
+        "win_rate": {"type": "number"}
+      }
+    },
+    "verdict": {"type": "string", "enum": ["validated_for_demo", "hold", "reject"]},
+    "observation": {"type": "string"}
+  }
+}
