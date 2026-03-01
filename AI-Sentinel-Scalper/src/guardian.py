@@ -351,6 +351,7 @@ class Guardian:
                     target_delta = float((hybrid_map.get(symbol) or {}).get("target_delta", 0.0))
                     drift_deadzone = float(cfg.get("drift_threshold", self.config.drift_deadzone))
                     drift_checks[symbol] = self.check_position_drift(symbol, target_delta, drift_deadzone)
+                    LOG.info("DRIFT_CALC symbol=%s target_delta=%.4f result=%s", symbol, target_delta, drift_checks[symbol])
 
                     # Alert when drift > 5% for 3 consecutive cycles
                     d = float((drift_checks[symbol] or {}).get("drift") or 0.0)
@@ -393,7 +394,11 @@ class Guardian:
 
                 time.sleep(self.config.loop_seconds)
             except Exception as exc:  # noqa: BLE001
-                LOG.exception("guardian loop error: %s", exc)
+                LOG.exception("CRITICAL_ERROR guardian loop: %s", exc)
+                autonomous = os.getenv("AUTONOMOUS_SOAK", "false").lower() in {"1", "true", "yes"}
+                if autonomous:
+                    LOG.error("AUTONOMOUS_SOAK: stopping guardian after CRITICAL_ERROR")
+                    break
                 time.sleep(max(1.0, self.config.loop_seconds))
 
 
@@ -428,7 +433,9 @@ def load_config(base_dir: Path) -> GuardianConfig:
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
     log_path = root / "logs" / "guardian.log"
+    audit_log = Path(os.getenv("OVERNIGHT_AUDIT_LOG", str(root / "logs" / "overnight_audit.log")))
     log_path.parent.mkdir(parents=True, exist_ok=True)
+    audit_log.parent.mkdir(parents=True, exist_ok=True)
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -436,11 +443,14 @@ if __name__ == "__main__":
 
     fh = logging.FileHandler(log_path, encoding="utf-8")
     fh.setFormatter(fmt)
+    ah = logging.FileHandler(audit_log, encoding="utf-8")
+    ah.setFormatter(fmt)
     sh = logging.StreamHandler()
     sh.setFormatter(fmt)
 
     logger.handlers.clear()
     logger.addHandler(fh)
+    logger.addHandler(ah)
     logger.addHandler(sh)
 
     Guardian(load_config(root)).run()

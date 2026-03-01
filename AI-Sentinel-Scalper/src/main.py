@@ -86,11 +86,17 @@ def run_once(base_dir: Path, headlines: list[str] | None = None) -> dict:
     strategy = load_strategy(cfg.strategy_path)
     registry = load_registry(cfg.pairs_registry_path)
 
+    autonomous = os.getenv("AUTONOMOUS_SOAK", "false").lower() in {"1", "true", "yes"}
+
     # Token-free sentiment pulse (heuristic only; no LLM calls)
-    gate = compute_market_pulse(headlines or [])
-    if registry:
-        gate["scores"] = {symbol: gate.get("score", 50) for symbol, pcfg in registry.items() if pcfg.get("enabled", True)}
-    write_gate(gate, cfg.sentiment_gate_path)
+    if autonomous and cfg.sentiment_gate_path.exists():
+        gate = json.loads(cfg.sentiment_gate_path.read_text(encoding="utf-8"))
+        LOG.info("AUTONOMOUS_SOAK enabled: using persisted sentiment_gate.json only")
+    else:
+        gate = compute_market_pulse(headlines or [])
+        if registry:
+            gate["scores"] = {symbol: gate.get("score", 50) for symbol, pcfg in registry.items() if pcfg.get("enabled", True)}
+        write_gate(gate, cfg.sentiment_gate_path)
 
     mode = resolve_trade_mode(strategy, gate)
     hybrid = HybridManager(cfg.sentiment_gate_path, cfg.pairs_registry_path).compute_targets()
@@ -146,6 +152,21 @@ def run_loop(base_dir: Path) -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
     root = Path(__file__).resolve().parents[1]
+    audit_log = Path(os.getenv("OVERNIGHT_AUDIT_LOG", str(root / "logs" / "overnight_audit.log")))
+    audit_log.parent.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    fmt = logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+
+    sh = logging.StreamHandler()
+    sh.setFormatter(fmt)
+    fh = logging.FileHandler(audit_log, encoding="utf-8")
+    fh.setFormatter(fmt)
+
+    logger.handlers.clear()
+    logger.addHandler(sh)
+    logger.addHandler(fh)
+
     run_loop(root)
