@@ -134,3 +134,4 @@ Status legend: `TODO` | `IN_PROGRESS` | `BLOCKED` | `DONE`
 - 2026-03-01: Initial requirement digestion complete; task board created; milestones defined.
 - 2026-03-01: Enabled strategy-contract-driven regime backtesting (A/B) via `src/strategy_engine.py` and `scripts/run_backtest.py --strategy`.
 - 2026-03-01: 90-day backtests for Regime A and Regime B both failed current risk gate; further tuning required.
+- 2026-03-01: Integrated Hybrid Track C control plane (`src/hybrid_manager.py`) into orchestrator + guardian drift rebalancer + dashboard drift meter.

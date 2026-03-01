@@ -6,6 +6,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.hybrid_manager import HybridManager
 from src.sentiment_agent import compute_market_pulse, write_gate
 
 LOG = logging.getLogger("orchestrator")
@@ -62,11 +63,14 @@ def run_once(base_dir: Path, headlines: list[str] | None = None) -> dict:
     write_gate(gate, cfg.sentiment_gate_path)
     mode = resolve_trade_mode(strategy, gate)
 
+    hybrid = HybridManager(cfg.sentiment_gate_path).compute_target_delta()
+
     state = {
         "strategy_regime": strategy.get("regime"),
         "strategy_status": strategy.get("status"),
         "sentiment": gate,
         "trade_mode": mode,
+        "hybrid": hybrid,
     }
     write_runtime_state(base_dir, state)
     return state
@@ -77,7 +81,12 @@ def run_loop(base_dir: Path) -> None:
     LOG.info("orchestrator started | loop=%ss", cfg.loop_seconds)
     while True:
         state = run_once(base_dir)
-        LOG.info("trade_mode=%s allow_new_trades=%s", state["trade_mode"]["mode"], state["trade_mode"]["allow_new_trades"])
+        LOG.info(
+            "trade_mode=%s allow_new_trades=%s target_delta=%.2f",
+            state["trade_mode"]["mode"],
+            state["trade_mode"]["allow_new_trades"],
+            state.get("hybrid", {}).get("target_delta", 0.0),
+        )
         time.sleep(cfg.loop_seconds)
 
 

@@ -1,14 +1,16 @@
-"""Guardian module (M2).
+"""Guardian module.
 
 Safety-critical watchdog:
 - captures baseline equity
 - monitors drawdown
 - triggers kill-switch (cancel orders + flatten positions)
+- performs emergency delta-drift rebalance for hybrid mode
 - persists machine-readable state for dashboard/orchestrator
 """
 
 from __future__ import annotations
 
+import csv
 import json
 import logging
 import os
@@ -32,6 +34,10 @@ class GuardianConfig:
     exchange_testnet: bool = True
     max_retries: int = 3
     retry_backoff_seconds: float = 1.0
+    drift_deadzone: float = 0.01
+    max_spread_for_rebalance: float = 0.001
+    runtime_state_path: Path = Path("logs/runtime_state.json")
+    rebalance_log_path: Path = Path("logs/rebalance_events.csv")
 
 
 class Guardian:
@@ -73,9 +79,7 @@ class Guardian:
                 "apiKey": os.getenv("BYBIT_API_KEY"),
                 "secret": os.getenv("BYBIT_API_SECRET"),
                 "enableRateLimit": True,
-                "options": {
-                    "defaultType": self.config.exchange_default_type,
-                },
+                "options": {"defaultType": self.config.exchange_default_type},
             }
         )
         if self.config.exchange_testnet:
@@ -145,6 +149,103 @@ class Guardian:
         self.active = False
         self.persist_state({"ts": int(time.time()), "event": "killswitch", "dry_run": False, "reason": reason})
 
+    def _read_target_delta(self) -> float:
+        if not self.config.runtime_state_path.exists():
+            return 0.0
+        try:
+            state = json.loads(self.config.runtime_state_path.read_text(encoding="utf-8"))
+            return float((state.get("hybrid") or {}).get("target_delta", 0.0))
+        except Exception:
+            return 0.0
+
+    def _fetch_spot_and_perp_qty(self) -> tuple[float, float]:
+        if self.config.dry_run:
+            # simulation knobs for testing
+            spot = float(os.getenv("GUARDIAN_STUB_SPOT_QTY", "1.0"))
+            perp = float(os.getenv("GUARDIAN_STUB_PERP_QTY", "1.0"))
+            return spot, perp
+
+        self._ensure_exchange()
+        bal = self.exchange.fetch_balance()
+        base = self.config.symbol.split("/")[0]
+        spot_qty = float((bal.get("total") or {}).get(base, 0) or 0)
+        positions = self.exchange.fetch_positions([self.config.symbol])
+        perp_qty = 0.0
+        if positions:
+            perp_qty = abs(float(positions[0].get("contracts") or 0))
+        return spot_qty, perp_qty
+
+    def _fetch_spread(self) -> float:
+        if self.config.dry_run:
+            return float(os.getenv("GUARDIAN_STUB_SPREAD", "0.0002"))
+        self._ensure_exchange()
+        ob = self.exchange.fetch_order_book(self.config.symbol, limit=5)
+        bid = float(ob["bids"][0][0]) if ob.get("bids") else 0
+        ask = float(ob["asks"][0][0]) if ob.get("asks") else 0
+        if bid <= 0 or ask <= 0:
+            return 1.0
+        mid = (bid + ask) / 2
+        return abs(ask - bid) / mid
+
+    def _log_rebalance_event(self, event: dict[str, Any]) -> None:
+        p = self.config.rebalance_log_path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        exists = p.exists()
+        with p.open("a", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(
+                f,
+                fieldnames=["ts", "target_delta", "actual_delta", "drift", "action", "qty", "spread", "dry_run"],
+            )
+            if not exists:
+                w.writeheader()
+            w.writerow(event)
+
+    def check_position_drift(self, target_delta: float) -> dict[str, float | bool | str]:
+        spot_qty, perp_qty = self._fetch_spot_and_perp_qty()
+        if spot_qty <= 0:
+            return {"checked": False, "reason": "no_spot"}
+
+        actual_delta = (spot_qty - perp_qty) / spot_qty
+        drift = abs(actual_delta - target_delta)
+        spread = self._fetch_spread()
+
+        if drift <= self.config.drift_deadzone:
+            return {"checked": True, "rebalanced": False, "actual_delta": actual_delta, "drift": drift}
+        if spread > self.config.max_spread_for_rebalance:
+            return {
+                "checked": True,
+                "rebalanced": False,
+                "actual_delta": actual_delta,
+                "drift": drift,
+                "reason": "spread_too_wide",
+            }
+
+        diff_qty = abs(spot_qty * (actual_delta - target_delta))
+        side = "sell" if actual_delta > target_delta else "buy"
+
+        if not self.config.dry_run:
+            self._ensure_exchange()
+            self.exchange.create_order(
+                symbol=self.config.symbol,
+                type="market",
+                side=side,
+                amount=diff_qty,
+                params={"reduceOnly": False},
+            )
+
+        event = {
+            "ts": int(time.time()),
+            "target_delta": round(target_delta, 6),
+            "actual_delta": round(actual_delta, 6),
+            "drift": round(drift, 6),
+            "action": side,
+            "qty": round(diff_qty, 8),
+            "spread": round(spread, 6),
+            "dry_run": self.config.dry_run,
+        }
+        self._log_rebalance_event(event)
+        return {"checked": True, "rebalanced": True, **event}
+
     def persist_state(self, payload: dict[str, Any]) -> None:
         self.config.state_path.parent.mkdir(parents=True, exist_ok=True)
         with self.config.state_path.open("w", encoding="utf-8") as f:
@@ -159,6 +260,10 @@ class Guardian:
             try:
                 current = self.fetch_total_equity()
                 dd = self.compute_drawdown(current)
+
+                target_delta = self._read_target_delta()
+                drift_info = self.check_position_drift(target_delta)
+
                 state = {
                     "ts": int(time.time()),
                     "symbol": self.config.symbol,
@@ -168,9 +273,11 @@ class Guardian:
                     "lock_threshold": self.config.daily_equity_lock_pct,
                     "dry_run": self.config.dry_run,
                     "status": "monitoring",
+                    "target_delta": target_delta,
+                    "drift_check": drift_info,
                 }
                 self.persist_state(state)
-                LOG.info("monitor | equity=%.4f drawdown=%.4f", current, dd)
+                LOG.info("monitor | equity=%.4f drawdown=%.4f target_delta=%.3f", current, dd, target_delta)
 
                 if dd >= self.config.daily_equity_lock_pct:
                     self.emergency_flatten(
@@ -207,6 +314,10 @@ def load_config(base_dir: Path) -> GuardianConfig:
         exchange_testnet=bool(live.get("exchange", {}).get("testnet", True)),
         max_retries=int(live.get("runtime", {}).get("max_retries", 3)),
         retry_backoff_seconds=float(live.get("runtime", {}).get("retry_backoff_seconds", 1.0)),
+        drift_deadzone=float(live.get("runtime", {}).get("drift_deadzone", 0.01)),
+        max_spread_for_rebalance=float(live.get("runtime", {}).get("max_spread_for_rebalance", 0.001)),
+        runtime_state_path=base_dir / live.get("paths", {}).get("runtime_state", "logs/runtime_state.json"),
+        rebalance_log_path=base_dir / live.get("paths", {}).get("rebalance_log", "logs/rebalance_events.csv"),
     )
 
 

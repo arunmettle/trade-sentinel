@@ -12,7 +12,9 @@
     "orchestrator_loop_seconds": 60,
     "latency_passive_mode_ms": 250,
     "max_retries": 3,
-    "retry_backoff_seconds": 1
+    "retry_backoff_seconds": 1,
+    "drift_deadzone": 0.01,
+    "max_spread_for_rebalance": 0.001
   },
   "execution": {
     "order_type_preference": "limit_post_only",
@@ -24,6 +26,8 @@
     "sentiment_gate": "config/sentiment_gate.json",
     "strategy": "config/live_strategy.json",
     "guardian_state": "logs/guardian_state.json",
+    "runtime_state": "logs/runtime_state.json",
+    "rebalance_log": "logs/rebalance_events.csv",
     "journal_memory": "memory/long_term_memory.md"
   },
   "ops": {

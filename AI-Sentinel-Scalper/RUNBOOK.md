@@ -31,7 +31,7 @@ export BYBIT_API_SECRET="..."
 python3 src/guardian.py
 ```
 
-Writes: `logs/guardian_state.json`
+Writes: `logs/guardian_state.json`, `logs/rebalance_events.csv`
 
 ### Orchestrator
 

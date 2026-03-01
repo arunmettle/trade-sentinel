@@ -44,13 +44,16 @@ with st.sidebar:
     if not sentiment.get("allow_trading", True):
         st.error("Sentiment gate blocking new trades")
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.metric("Current Equity", guardian.get("current_equity", "n/a"))
 with col2:
     st.metric("Drawdown", f"{guardian.get('drawdown', 0):.2%}" if guardian.get("drawdown") is not None else "n/a")
 with col3:
     st.metric("Lock Threshold", f"{guardian.get('lock_threshold', 0):.2%}" if guardian.get("lock_threshold") is not None else "n/a")
+with col4:
+    drift_val = ((guardian.get("drift_check") or {}).get("drift"))
+    st.metric("Drift Meter", f"{drift_val:.2%}" if isinstance(drift_val, (int, float)) else "n/a")
 
 # Placeholder equity curve until trade history wiring lands
 curve = pd.DataFrame(
