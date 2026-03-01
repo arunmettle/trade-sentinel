@@ -103,6 +103,21 @@ regime_adv = runtime.get("regime_advisory") or {}
 sim_trades = read_csv(BASE / "logs" / "sim_trades.csv")
 rebalances = read_csv(BASE / "logs" / "rebalance_events.csv")
 
+# ---------- Inconsistency Alarm (zero-trust UI) ----------
+btc_target = float(((runtime.get("hybrid") or {}).get("BTC/USDT:USDT") or {}).get("target_delta") or 0.0)
+btc_actual = float(((guardian.get("drift_checks") or {}).get("BTC/USDT:USDT") or {}).get("actual_delta") or 0.0)
+state_gap = abs(btc_actual - btc_target)
+
+if state_gap > 0.05:
+    first_ts = st.session_state.get("mismatch_first_ts")
+    if first_ts is None:
+        st.session_state["mismatch_first_ts"] = datetime.now().timestamp()
+        first_ts = st.session_state["mismatch_first_ts"]
+    if datetime.now().timestamp() - float(first_ts) > 30:
+        st.error("⚠️ CRITICAL: EXCHANGE/BOT STATE MISMATCH")
+else:
+    st.session_state.pop("mismatch_first_ts", None)
+
 
 # ---------- Sidebar Controls ----------
 with st.sidebar:
@@ -127,6 +142,16 @@ with st.sidebar:
         }
         (BASE / "logs" / "emergency_close.flag.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
         st.error("Emergency close flag written (requires executor/guardian handler)")
+
+    if st.button("Re-Sync from Exchange (request)"):
+        payload = {
+            "resync": True,
+            "updated_at": datetime.now().isoformat(),
+            "source": "dashboard",
+            "note": "Executor/guardian should pull fresh exchange balances and overwrite local state",
+        }
+        (BASE / "logs" / "resync_request.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        st.warning("Re-sync request flag written.")
 
     st.divider()
     st.write("Current Regime Advisory:")
@@ -159,7 +184,7 @@ fees_24h = float(sim_trades["fee"].sum()) if not sim_trades.empty and "fee" in s
 k1, k2, k3, k4 = st.columns(4)
 k1.metric("Regime Status", f"{regime_color(active_regime)} {active_regime}")
 k2.metric("Total Delta", f"{total_delta:.3f}")
-k3.metric("Drift Alert (max)", f"{max_drift:.2%}")
+k3.metric("Drift Meter (max)", f"{max_drift:.2%}")
 k4.metric("24h Fee Total (sim)", f"${fees_24h:.2f}")
 
 
