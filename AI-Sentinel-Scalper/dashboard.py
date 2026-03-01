@@ -9,6 +9,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.exchange_client import ExchangeClient, force_sync_state
+
 BASE = Path(__file__).resolve().parent
 
 st.set_page_config(page_title="AI-Sentinel Pro Dashboard", layout="wide")
@@ -134,6 +136,8 @@ with st.sidebar:
         (BASE / "logs" / "regime_override.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
         st.success(f"Override set to {override} (advisory file updated)")
 
+    safety_lock = st.checkbox("Safety Lock: enable destructive actions")
+
     if st.button("Emergency Close (flag)"):
         payload = {
             "emergency_close": True,
@@ -143,15 +147,23 @@ with st.sidebar:
         (BASE / "logs" / "emergency_close.flag.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
         st.error("Emergency close flag written (requires executor/guardian handler)")
 
+    if safety_lock and st.button("🚨 EMERGENCY: CLOSE ALL POSITIONS"):
+        try:
+            client = ExchangeClient(testnet=bool(live_cfg.get("exchange", {}).get("testnet", True)))
+            result = client.close_all_positions(symbol="BTCUSDT")
+            sync = force_sync_state(BASE, symbol="BTCUSDT")
+            st.error("Close-All executed.")
+            st.json({"close_all_result": result, "sync": sync})
+        except Exception as e:
+            st.error(f"Close-All failed: {e}")
+
     if st.button("Re-Sync from Exchange (request)"):
-        payload = {
-            "resync": True,
-            "updated_at": datetime.now().isoformat(),
-            "source": "dashboard",
-            "note": "Executor/guardian should pull fresh exchange balances and overwrite local state",
-        }
-        (BASE / "logs" / "resync_request.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        st.warning("Re-sync request flag written.")
+        try:
+            sync = force_sync_state(BASE, symbol="BTCUSDT")
+            st.warning("Re-sync completed from exchange truth.")
+            st.json(sync)
+        except Exception as e:
+            st.error(f"Re-sync failed: {e}")
 
     st.divider()
     st.write("Current Regime Advisory:")
