@@ -1,0 +1,8 @@
+{
+  "window_hours": 48,
+  "symbol": "BTC/USDT:USDT",
+  "net_pnl_pct": 0.0,
+  "trade_count": 0,
+  "verdict": "pending",
+  "notes": "Populate after 48h unseen forward run"
+}

@@ -116,9 +116,10 @@ Status legend: `TODO` | `IN_PROGRESS` | `BLOCKED` | `DONE`
 - [x] **DONE** Add runbooks (`RUNBOOK.md`) for start/stop/recovery/incidents.
 
 ### M6 — Validation & Go/No-Go
-- [ ] **TODO** Run backtest and forward-test checklist.
+- [x] **DONE** Create backtest/forward/demo validation checklist (`reports/validation_checklist.md`).
+- [ ] **TODO** Run backtest and forward-test checklist with real data.
 - [ ] **TODO** Run 24h demo soak test.
-- [ ] **TODO** Produce launch readiness report + known risks.
+- [x] **DONE** Produce launch readiness report + known risks (`reports/launch_readiness.md`).
 
 ---
 
