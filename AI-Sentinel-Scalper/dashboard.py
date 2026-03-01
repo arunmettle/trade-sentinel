@@ -30,6 +30,22 @@ def read_csv(path: Path) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+def read_jsonl(path: Path, limit: int = 200) -> pd.DataFrame:
+    rows = []
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                rows.append(json.loads(line))
+    except Exception:
+        return pd.DataFrame()
+    if limit and len(rows) > limit:
+        rows = rows[-limit:]
+    return pd.DataFrame(rows)
+
+
 def tail_lines(path: Path, n: int = 10) -> str:
     try:
         lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
@@ -154,13 +170,12 @@ with left:
     st.plotly_chart(create_regime_gauge(adr_ratio), use_container_width=True)
 
     st.subheader("ADR Regime Sensor")
-    adr_history = []
-    if isinstance(regime_adv.get("adr_ratio"), (int, float)):
-        adr_history = [adr_ratio] * 24
-    adr_df = pd.DataFrame({"idx": list(range(len(adr_history))), "ratio": adr_history})
-    if not adr_df.empty:
+    adr_df = read_jsonl(BASE / "logs" / "adr_history.jsonl", limit=240)
+    if not adr_df.empty and {"ts", "adr_ratio"}.issubset(adr_df.columns):
+        adr_df = adr_df.reset_index(drop=True)
+        adr_df["idx"] = adr_df.index
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=adr_df["idx"], y=adr_df["ratio"], mode="lines", name="ADR Ratio"))
+        fig.add_trace(go.Scatter(x=adr_df["idx"], y=adr_df["adr_ratio"], mode="lines", name="ADR Ratio"))
         fig.add_hline(y=0.85, line_dash="dot", line_color="royalblue")
         fig.add_hline(y=1.25, line_dash="dot", line_color="crimson")
         fig.update_layout(height=260, margin=dict(l=10, r=10, t=10, b=10))

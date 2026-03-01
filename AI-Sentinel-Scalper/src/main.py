@@ -64,6 +64,14 @@ def resolve_trade_mode(strategy: dict, sentiment_gate: dict) -> dict:
     return {"mode": "ACTIVE", "allow_new_trades": True}
 
 
+def _append_adr_history(base_dir: Path, adr_ratio: float) -> None:
+    p = base_dir / "logs" / "adr_history.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    rec = {"ts": int(time.time()), "adr_ratio": adr_ratio}
+    with p.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(rec) + "\n")
+
+
 def write_runtime_state(base_dir: Path, payload: dict) -> None:
     p = base_dir / "logs" / "runtime_state.json"
     tmp = base_dir / "logs" / "runtime_state.json.tmp"
@@ -78,17 +86,16 @@ def run_once(base_dir: Path, headlines: list[str] | None = None) -> dict:
     strategy = load_strategy(cfg.strategy_path)
     registry = load_registry(cfg.pairs_registry_path)
 
+    # Token-free sentiment pulse (heuristic only; no LLM calls)
     gate = compute_market_pulse(headlines or [])
     if registry:
-        # phase-1 multi-pair: same score fanout; can be replaced by per-symbol model later
         gate["scores"] = {symbol: gate.get("score", 50) for symbol, pcfg in registry.items() if pcfg.get("enabled", True)}
     write_gate(gate, cfg.sentiment_gate_path)
 
     mode = resolve_trade_mode(strategy, gate)
-
     hybrid = HybridManager(cfg.sentiment_gate_path, cfg.pairs_registry_path).compute_targets()
-
     regime_advisory = advisory_snapshot(base_dir)
+    _append_adr_history(base_dir, float(regime_advisory.get("adr_ratio", 1.0)))
 
     state = {
         "strategy_regime": strategy.get("regime"),
@@ -105,7 +112,6 @@ def run_once(base_dir: Path, headlines: list[str] | None = None) -> dict:
 def run_loop(base_dir: Path) -> None:
     cfg = load_runtime_config(base_dir)
 
-    # Netting mode preflight (required for hybrid delta-tilt semantics)
     with (base_dir / "config" / "live_config.json").open("r", encoding="utf-8") as f:
         live = json.load(f)
     dry_run = bool(live.get("runtime", {}).get("dry_run", True))

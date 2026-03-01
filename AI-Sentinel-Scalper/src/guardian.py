@@ -316,6 +316,21 @@ def load_config(base_dir: Path) -> GuardianConfig:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
     root = Path(__file__).resolve().parents[1]
+    log_path = root / "logs" / "guardian.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    fmt = logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+
+    fh = logging.FileHandler(log_path, encoding="utf-8")
+    fh.setFormatter(fmt)
+    sh = logging.StreamHandler()
+    sh.setFormatter(fmt)
+
+    logger.handlers.clear()
+    logger.addHandler(fh)
+    logger.addHandler(sh)
+
     Guardian(load_config(root)).run()
