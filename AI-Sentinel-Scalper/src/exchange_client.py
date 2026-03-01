@@ -53,14 +53,78 @@ class ExchangeClient:
                 if contracts <= 0:
                     continue
                 close_side = "sell" if side == "long" else "buy"
-                o = self.linear.create_order(
-                    symbol=perp_symbol,
-                    type="market",
-                    side=close_side,
-                    amount=contracts,
-                    params={"reduceOnly": True, "positionIdx": 0},
-                )
-                out["linear_orders"].append({"id": o.get("id"), "side": close_side, "qty": contracts})
+
+                try:
+                    o = self.linear.create_order(
+                        symbol=perp_symbol,
+                        type="market",
+                        side=close_side,
+                        amount=contracts,
+                        params={"reduceOnly": True, "positionIdx": 0},
+                    )
+                    out["linear_orders"].append(
+                        {"id": o.get("id"), "side": close_side, "qty": contracts, "mode": "market_reduce_only"}
+                    )
+                except Exception as m_exc:  # noqa: BLE001
+                    msg = str(m_exc)
+                    if "NoImmediateQtyToFill" not in msg and "EC_NoImmediateQtyToFill" not in msg:
+                        raise
+
+                    ob = self.linear.fetch_order_book(perp_symbol, limit=20)
+                    best_bid = float(ob["bids"][0][0]) if ob.get("bids") else 0.0
+                    best_ask = float(ob["asks"][0][0]) if ob.get("asks") else 0.0
+                    ref = best_bid if close_side == "sell" else best_ask
+                    if ref <= 0:
+                        raise RuntimeError("Cannot ladder-exit: missing orderbook reference price")
+
+                    info = self.linear.publicGetV5MarketInstrumentsInfo({"category": "linear", "symbol": symbol})
+                    item = ((info.get("result") or {}).get("list") or [{}])[0]
+                    pf = item.get("priceFilter") or {}
+                    lot = item.get("lotSizeFilter") or {}
+                    tick = float(pf.get("tickSize") or 0.1)
+                    step = float(lot.get("qtyStep") or 0.001)
+
+                    levels = [0.0, -0.005, -0.01, -0.02] if close_side == "sell" else [0.0, 0.005, 0.01, 0.02]
+                    chunk = max(step, math.floor((contracts / 4) / step) * step)
+                    remaining = contracts
+
+                    for lv in levels:
+                        if remaining <= 0:
+                            break
+                        q = min(chunk, remaining)
+                        q = max(step, math.floor(q / step) * step)
+                        if q <= 0:
+                            continue
+
+                        px = ref * (1 + lv)
+                        px = math.floor(px / tick) * tick
+                        if px <= 0:
+                            continue
+
+                        o2 = self.linear.create_order(
+                            symbol=perp_symbol,
+                            type="limit",
+                            side=close_side,
+                            amount=q,
+                            price=px,
+                            params={
+                                "reduceOnly": True,
+                                "positionIdx": 0,
+                                "timeInForce": "PostOnly",
+                                "postOnly": True,
+                            },
+                        )
+                        out["linear_orders"].append(
+                            {
+                                "id": o2.get("id"),
+                                "side": close_side,
+                                "qty": q,
+                                "price": px,
+                                "mode": "ladder_postonly_reduce_only",
+                            }
+                        )
+                        remaining = max(0.0, remaining - q)
+
         except Exception as exc:  # noqa: BLE001
             out["errors"].append(f"linear_close_error: {exc}")
 
@@ -103,8 +167,15 @@ def force_sync_state(base_dir: Path, symbol: str = "BTCUSDT", api_key: str | Non
     rt = json.loads(runtime_path.read_text(encoding="utf-8")) if runtime_path.exists() else {}
     target = float(((rt.get("hybrid") or {}).get(perp_symbol) or {}).get("target_delta") or 0.0)
 
-    actual = (spot_qty - perp_qty) / spot_qty if spot_qty > 0 else 0.0
-    drift = abs(actual - target)
+    # guard against meaningless ratio when spot leg is near-zero (dust)
+    if spot_qty < 1e-4:
+        actual = 0.0 if perp_qty == 0 else -1.0
+        drift = abs(actual - target)
+        reason = "near_zero_spot_leg"
+    else:
+        actual = (spot_qty - perp_qty) / spot_qty
+        drift = abs(actual - target)
+        reason = "force_sync"
 
     state = {
         "ts": int(time.time()),
@@ -118,7 +189,7 @@ def force_sync_state(base_dir: Path, symbol: str = "BTCUSDT", api_key: str | Non
                 "actual_delta": actual,
                 "target_delta": target,
                 "drift": drift,
-                "reason": "force_sync",
+                "reason": reason,
             }
         },
     }
