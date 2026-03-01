@@ -13,7 +13,7 @@ def validate_bybit_netting_mode(exchange, symbol: str) -> bool:
     - positionIdx 1/2 => hedge legs
     """
     try:
-        market = symbol.replace("/", "").replace(":", "")
+        market = symbol.split(":")[0].replace("/", "")
         response = exchange.privateGetV5PositionList({"category": "linear", "symbol": market})
         pos_info = ((response or {}).get("result") or {}).get("list") or []
         if not pos_info:
