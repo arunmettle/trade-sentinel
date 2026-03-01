@@ -1,0 +1,9 @@
+{
+  "window_hours": 24,
+  "environment": "bybit_demo_uta",
+  "net_pnl_pct": 0.0,
+  "backtest_expected_pnl_pct": 0.0,
+  "drift_pct": 0.0,
+  "promotion_decision": "hold",
+  "notes": "Populate after demo soak"
+}

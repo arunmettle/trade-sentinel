@@ -1,0 +1,16 @@
+{
+  "strategy_id": "phase1_backtest",
+  "period": {
+    "start": "0",
+    "end": "1999"
+  },
+  "metrics": {
+    "net_profit_pct": 0.003630085683460127,
+    "max_drawdown_pct": 0.022007461708516893,
+    "sharpe_ratio": 2.2994020677825326,
+    "profit_factor": 1.0096456147229107,
+    "win_rate": 2.54978354978355
+  },
+  "verdict": "hold",
+  "observation": "Initial vectorized baseline; replace signal with strategy contract input."
+}

@@ -1,0 +1,16 @@
+{
+  "strategy_id": "phase1_forward",
+  "period": {
+    "start": "0",
+    "end": "499"
+  },
+  "metrics": {
+    "net_profit_pct": -0.0021166013582765153,
+    "max_drawdown_pct": 0.012802216694370901,
+    "sharpe_ratio": -4.753542761304312,
+    "profit_factor": 0.9796040368672263,
+    "win_rate": 2.4210526315789473
+  },
+  "verdict": "hold",
+  "observation": "Initial vectorized baseline; replace signal with strategy contract input."
+}
