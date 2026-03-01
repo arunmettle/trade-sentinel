@@ -137,6 +137,9 @@ with st.sidebar:
         st.success(f"Override set to {override} (advisory file updated)")
 
     safety_lock = st.checkbox("Safety Lock: enable destructive actions")
+    st.caption("Exchange credentials (session-only; not persisted)")
+    api_key_input = st.text_input("BYBIT_API_KEY", value="", type="password")
+    api_secret_input = st.text_input("BYBIT_API_SECRET", value="", type="password")
 
     if st.button("Emergency Close (flag)"):
         payload = {
@@ -149,9 +152,18 @@ with st.sidebar:
 
     if safety_lock and st.button("🚨 EMERGENCY: CLOSE ALL POSITIONS"):
         try:
-            client = ExchangeClient(testnet=bool(live_cfg.get("exchange", {}).get("testnet", True)))
+            client = ExchangeClient(
+                testnet=bool(live_cfg.get("exchange", {}).get("testnet", True)),
+                api_key=api_key_input.strip() or None,
+                api_secret=api_secret_input.strip() or None,
+            )
             result = client.close_all_positions(symbol="BTCUSDT")
-            sync = force_sync_state(BASE, symbol="BTCUSDT")
+            sync = force_sync_state(
+                BASE,
+                symbol="BTCUSDT",
+                api_key=api_key_input.strip() or None,
+                api_secret=api_secret_input.strip() or None,
+            )
             st.error("Close-All executed.")
             st.json({"close_all_result": result, "sync": sync})
         except Exception as e:
@@ -159,7 +171,12 @@ with st.sidebar:
 
     if st.button("Re-Sync from Exchange (request)"):
         try:
-            sync = force_sync_state(BASE, symbol="BTCUSDT")
+            sync = force_sync_state(
+                BASE,
+                symbol="BTCUSDT",
+                api_key=api_key_input.strip() or None,
+                api_secret=api_secret_input.strip() or None,
+            )
             st.warning("Re-sync completed from exchange truth.")
             st.json(sync)
         except Exception as e:

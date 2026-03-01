@@ -10,9 +10,9 @@ import ccxt
 
 
 class ExchangeClient:
-    def __init__(self, testnet: bool = True) -> None:
-        key = os.getenv("BYBIT_API_KEY")
-        secret = os.getenv("BYBIT_API_SECRET")
+    def __init__(self, testnet: bool = True, api_key: str | None = None, api_secret: str | None = None) -> None:
+        key = api_key or os.getenv("BYBIT_API_KEY")
+        secret = api_secret or os.getenv("BYBIT_API_SECRET")
         if not key or not secret:
             raise RuntimeError("Missing BYBIT_API_KEY/BYBIT_API_SECRET in environment")
 
@@ -87,9 +87,9 @@ class ExchangeClient:
         return out
 
 
-def force_sync_state(base_dir: Path, symbol: str = "BTCUSDT") -> dict:
+def force_sync_state(base_dir: Path, symbol: str = "BTCUSDT", api_key: str | None = None, api_secret: str | None = None) -> dict:
     """Fetch exchange truth and overwrite guardian_state.json snapshot."""
-    client = ExchangeClient(testnet=True)
+    client = ExchangeClient(testnet=True, api_key=api_key, api_secret=api_secret)
     base = symbol.replace("USDT", "")
     perp_symbol = f"{base}/USDT:USDT"
 
