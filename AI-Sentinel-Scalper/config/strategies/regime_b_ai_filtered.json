@@ -1,0 +1,25 @@
+{
+  "regime": "B",
+  "status": "active",
+  "variant": "ai_filtered",
+  "ai_filter": {
+    "score_threshold": 80
+  },
+  "parameters": {
+    "timeframe": "1m",
+    "indicators": {
+      "ema_fast": 9,
+      "ema_slow": 21,
+      "rsi_period": 14,
+      "bb_std_dev": 2.5
+    },
+    "risk": {
+      "stop_loss_pct": 0.005,
+      "take_profit_pct": 0.010,
+      "max_position_size_pct": 0.02,
+      "equity_lock_trigger": 0.02
+    },
+    "entry_logic": "score>80 and rsi<30 and bullish close",
+    "exit_logic": "mean reversion or risk stop"
+  }
+}

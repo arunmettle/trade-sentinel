@@ -1,0 +1,9 @@
+{
+  "strategy": "track_a_funding_arb",
+  "samples": 200,
+  "net_yield_pct": 0.5909708144467989,
+  "sharpe_ratio": 11.63909760282008,
+  "max_drawdown_pct": 0.07124326942147052,
+  "rebalance_count": 0,
+  "gate": "fail"
+}

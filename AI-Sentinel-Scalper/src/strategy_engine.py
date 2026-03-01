@@ -50,7 +50,13 @@ def build_signal(df, strategy: dict):
         return sig
 
     if regime == "B":
-        # mean-reversion: buy lower band with RSI oversold
+        if strategy.get("variant") == "ai_filtered":
+            from src.track_b_ai_mean_reversion import build_track_b_signal
+
+            th = float(strategy.get("ai_filter", {}).get("score_threshold", 80))
+            return build_track_b_signal(df, rsi, score_threshold=th)
+
+        # default mean-reversion: buy lower band with RSI oversold
         sig = ((close < bb_lower) & (rsi < 35)).astype(float)
         return sig
 
