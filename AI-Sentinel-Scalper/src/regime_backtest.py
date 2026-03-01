@@ -27,7 +27,7 @@ def classify_regime(adr_ratio: float) -> RegimeParams:
 def _sim(df: pd.DataFrame, dynamic: bool = True) -> dict:
     # BTC-only regime-aware dry backtest scaffold on historical 1m candles.
     fee = 0.0006
-    slippage = 0.0002
+    slippage = 0.0005  # 5 bps institutional friction
     cash = 10000.0
     qty = 0.0
     equity_curve = []
@@ -47,8 +47,12 @@ def _sim(df: pd.DataFrame, dynamic: bool = True) -> dict:
     prev_eq = cash
     trades = 0
 
+    fixed_capital = 10000.0
+
     for i in range(len(df)):
-        px = float(close.iloc[i])
+        # latency model: execute using next bar price (proxy for 500ms delay on 1m bars)
+        exec_i = min(i + 1, len(df) - 1)
+        px = float(close.iloc[exec_i])
         sc = float(score.iloc[i])
         rr = float(ratio.iloc[i])
         params = classify_regime(rr) if dynamic else RegimeParams(2.0, 300, "HUNT")
@@ -58,7 +62,8 @@ def _sim(df: pd.DataFrame, dynamic: bool = True) -> dict:
 
         # target delta proxy
         target_delta = max(0.0, min(0.5, (sc - 50) / 50 * 0.5))
-        target_notional = (cash + qty * px) * target_delta
+        # disable compounding: fixed position budget regardless equity growth
+        target_notional = fixed_capital * target_delta
         target_qty = target_notional / px if px > 0 else 0.0
         diff = target_qty - qty
         notional = abs(diff) * px
