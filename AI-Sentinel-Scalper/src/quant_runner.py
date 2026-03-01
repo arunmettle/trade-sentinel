@@ -5,7 +5,6 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
-
 @dataclass
 class QuantMetrics:
     net_profit_pct: float
@@ -13,6 +12,7 @@ class QuantMetrics:
     sharpe_ratio: float
     profit_factor: float
     win_rate: float
+    trade_count: int
 
 
 @dataclass
@@ -24,10 +24,18 @@ class QuantReport:
     observation: str
 
 
-def _max_drawdown_from_equity(equity_curve) -> float:
+def _max_drawdown_from_equity(equity_curve):
     peak = equity_curve.cummax()
     dd = (equity_curve - peak) / peak
     return abs(float(dd.min()))
+
+
+def _sanitize_returns(returns, max_abs_ret: float = 0.10):
+    """Clip extreme minute returns to reduce data-artifact explosions.
+
+    Default 10%/minute cap is conservative for BTC 1m and meant for robustness.
+    """
+    return returns.clip(lower=-max_abs_ret, upper=max_abs_ret)
 
 
 def run_vectorized_backtest(
@@ -35,52 +43,86 @@ def run_vectorized_backtest(
     strategy_id: str = "v1_baseline",
     fee_pct: float = 0.0006,
     slippage_pct: float = 0.0002,
+    max_abs_ret: float = 0.10,
 ) -> QuantReport:
     import numpy as np
     import pandas as pd
 
     df = pd.read_csv(csv_path)
-    required = {"close"}
-    if not required.issubset(df.columns):
+    if "close" not in df.columns:
         raise ValueError("CSV must include at least a 'close' column")
 
     close = df["close"].astype(float)
     returns = close.pct_change().fillna(0.0)
+    returns = _sanitize_returns(returns, max_abs_ret=max_abs_ret)
 
     # Baseline signal: momentum proxy (replace with Architect strategy wiring later)
-    signal = np.where(returns.rolling(14).mean().fillna(0) > 0, 1, 0)
+    momentum = returns.rolling(14).mean().fillna(0)
+    signal = np.where(momentum > 0, 1.0, 0.0)
 
-    trade_flag = np.abs(np.diff(np.insert(signal, 0, signal[0])))
-    costs = trade_flag * (fee_pct + slippage_pct)
-    strat_returns = signal * returns - costs
+    signal_s = pd.Series(signal, index=df.index, dtype="float64")
+    prev_signal = signal_s.shift(1).fillna(0.0)
+    entries = (signal_s == 1.0) & (prev_signal == 0.0)
+    exits = (signal_s == 0.0) & (prev_signal == 1.0)
+
+    per_bar_cost = (entries.astype(float) + exits.astype(float)) * (fee_pct + slippage_pct)
+    strat_returns = (signal_s * returns) - per_bar_cost
 
     equity = (1 + strat_returns).cumprod()
     net_profit_pct = float(equity.iloc[-1] - 1)
     mdd = _max_drawdown_from_equity(equity)
-    vol = float(strat_returns.std()) or 1e-9
-    sharpe = float((strat_returns.mean() / vol) * np.sqrt(365 * 24 * 60))
+
+    vol = float(strat_returns.std())
+    sharpe = 0.0 if vol == 0 else float((strat_returns.mean() / vol) * np.sqrt(365 * 24 * 60))
 
     gross_profit = float(strat_returns[strat_returns > 0].sum())
-    gross_loss = abs(float(strat_returns[strat_returns < 0].sum())) or 1e-9
-    pf = gross_profit / gross_loss
-    wins = int((strat_returns > 0).sum())
-    trades = int((trade_flag > 0).sum()) or 1
-    win_rate = wins / trades
+    gross_loss = abs(float(strat_returns[strat_returns < 0].sum()))
+    pf = gross_profit / gross_loss if gross_loss > 0 else float("inf")
+
+    # Trade-level win rate: pair each entry with next exit, use compounded trade return.
+    entry_idx = list(df.index[entries])
+    exit_idx = list(df.index[exits])
+    if exit_idx and entry_idx and exit_idx[0] < entry_idx[0]:
+        exit_idx = exit_idx[1:]
+
+    n = min(len(entry_idx), len(exit_idx))
+    wins = 0
+    for i in range(n):
+        s = entry_idx[i]
+        e = exit_idx[i]
+        if e <= s:
+            continue
+        trade_slice = strat_returns.loc[s:e]
+        trade_ret = float((1 + trade_slice).prod() - 1)
+        if trade_ret > 0:
+            wins += 1
+
+    trade_count = n
+    win_rate = (wins / trade_count) if trade_count > 0 else 0.0
 
     verdict = "validated_for_demo" if sharpe > 2.0 and mdd < 0.015 else "hold"
 
+    period = {
+        "start": str(df["timestamp"].iloc[0]) if "timestamp" in df.columns else "unknown",
+        "end": str(df["timestamp"].iloc[-1]) if "timestamp" in df.columns else "unknown",
+    }
+
     report = QuantReport(
         strategy_id=strategy_id,
-        period={"start": str(df.index.min()), "end": str(df.index.max())},
+        period=period,
         metrics=QuantMetrics(
             net_profit_pct=net_profit_pct,
             max_drawdown_pct=mdd,
             sharpe_ratio=sharpe,
             profit_factor=pf,
             win_rate=win_rate,
+            trade_count=trade_count,
         ),
         verdict=verdict,
-        observation="Initial vectorized baseline; replace signal with strategy contract input.",
+        observation=(
+            "Vectorized baseline with clipped minute-return outlier handling and trade-level win-rate. "
+            "Replace signal with strategy contract input for production."
+        ),
     )
     return report
 

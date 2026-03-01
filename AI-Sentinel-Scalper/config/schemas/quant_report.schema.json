@@ -15,13 +15,14 @@
     },
     "metrics": {
       "type": "object",
-      "required": ["net_profit_pct", "max_drawdown_pct", "sharpe_ratio", "profit_factor", "win_rate"],
+      "required": ["net_profit_pct", "max_drawdown_pct", "sharpe_ratio", "profit_factor", "win_rate", "trade_count"],
       "properties": {
         "net_profit_pct": {"type": "number"},
         "max_drawdown_pct": {"type": "number"},
         "sharpe_ratio": {"type": "number"},
         "profit_factor": {"type": "number"},
-        "win_rate": {"type": "number"}
+        "win_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "trade_count": {"type": "integer", "minimum": 0}
       }
     },
     "verdict": {"type": "string", "enum": ["validated_for_demo", "hold", "reject"]},

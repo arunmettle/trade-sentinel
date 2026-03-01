@@ -25,6 +25,9 @@ class QuantRunnerTests(unittest.TestCase):
             report = run_vectorized_backtest(p)
             self.assertIsNotNone(report.metrics.sharpe_ratio)
             self.assertIn(report.verdict, {"validated_for_demo", "hold"})
+            self.assertGreaterEqual(report.metrics.win_rate, 0)
+            self.assertLessEqual(report.metrics.win_rate, 1)
+            self.assertGreaterEqual(report.metrics.trade_count, 0)
 
 
 if __name__ == "__main__":

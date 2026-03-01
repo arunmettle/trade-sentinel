@@ -1,0 +1,17 @@
+{
+  "strategy_id": "phase1_backtest_90d",
+  "period": {
+    "start": "2025-12-01T07:55:00+00:00",
+    "end": "2026-03-01T07:54:00+00:00"
+  },
+  "metrics": {
+    "net_profit_pct": 2.4812100720916666e+39,
+    "max_drawdown_pct": 0.12593179100702825,
+    "sharpe_ratio": 136.94946054899822,
+    "profit_factor": 3.7012800151592615,
+    "win_rate": 0.5639582761460334,
+    "trade_count": 7286
+  },
+  "verdict": "hold",
+  "observation": "Vectorized baseline with clipped minute-return outlier handling and trade-level win-rate. Replace signal with strategy contract input for production."
+}
