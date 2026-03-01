@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.hybrid_manager import HybridManager
+from src.regime_switcher import advisory_snapshot
 from src.sentiment_agent import compute_market_pulse, write_gate
 from src.validators import validate_bybit_netting_mode
 
@@ -87,12 +88,15 @@ def run_once(base_dir: Path, headlines: list[str] | None = None) -> dict:
 
     hybrid = HybridManager(cfg.sentiment_gate_path, cfg.pairs_registry_path).compute_targets()
 
+    regime_advisory = advisory_snapshot(base_dir)
+
     state = {
         "strategy_regime": strategy.get("regime"),
         "strategy_status": strategy.get("status"),
         "sentiment": gate,
         "trade_mode": mode,
         "hybrid": hybrid,
+        "regime_advisory": regime_advisory,
     }
     write_runtime_state(base_dir, state)
     return state

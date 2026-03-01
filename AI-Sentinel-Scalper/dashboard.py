@@ -69,7 +69,7 @@ fig.add_trace(go.Scatter(x=curve["time"], y=curve["equity"], mode="lines+markers
 fig.update_layout(title="Equity Curve (placeholder)", template="plotly_dark", height=380)
 st.plotly_chart(fig, use_container_width=True)
 
-tab1, tab2, tab3 = st.tabs(["Open State", "Reasoning/Runtime", "Journal Memory"])
+tab1, tab2, tab3, tab4 = st.tabs(["Open State", "Reasoning/Runtime", "Journal Memory", "Regime Advisory"])
 with tab1:
     st.subheader("Strategy")
     st.json(strategy)
@@ -83,5 +83,9 @@ with tab2:
 with tab3:
     st.subheader("long_term_memory.md")
     st.markdown(read_memory(BASE / "memory" / "long_term_memory.md"))
+
+with tab4:
+    st.subheader("Regime Advisory (no auto-apply)")
+    st.json((runtime.get("regime_advisory") or {}))
 
 st.caption(f"Last refreshed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
