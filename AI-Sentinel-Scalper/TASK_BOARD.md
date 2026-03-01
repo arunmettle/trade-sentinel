@@ -91,13 +91,13 @@ Status legend: `TODO` | `IN_PROGRESS` | `BLOCKED` | `DONE`
 - [ ] **TODO** Add `.env.example` and secure key loading (no plaintext secrets in code).
 
 ### M2 — Safety First (Guardian)
-- [ ] **TODO** Implement `guardian.py` with:
+- [x] **DONE** Implement `guardian.py` with:
   - equity baseline capture
   - drawdown monitor
   - emergency cancel/flatten
   - robust error handling + retries
-- [ ] **TODO** Add dry-run mode and unit tests for kill-switch logic.
-- [ ] **TODO** Add startup self-check (permissions, API connectivity, account mode).
+- [x] **DONE** Add dry-run mode and unit tests for kill-switch logic.
+- [x] **DONE** Add startup self-check (permissions, API connectivity, account mode).
 
 ### M3 — Strategy & Validation Pipeline
 - [ ] **TODO** Implement Architect I/O contract (`strategy.json`).
