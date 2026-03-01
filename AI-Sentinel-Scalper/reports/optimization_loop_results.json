@@ -1,0 +1,20 @@
+{
+  "scenario_1_fee_free": {
+    "final_equity": 10010.649139587847,
+    "profit_pct": 0.0010649139587847458,
+    "approx_sharpe": 2.566012299933706,
+    "max_drawdown_pct": 0.003593504184110257
+  },
+  "scenario_2_aggressive_tilt": {
+    "final_equity": 10006.319461810646,
+    "profit_pct": 0.0006319461810646317,
+    "approx_sharpe": 1.5758311483970577,
+    "max_drawdown_pct": 0.0036004566812757083
+  },
+  "scenario_3_aggressive_plus_funding": {
+    "final_equity": 10024.083172451506,
+    "profit_pct": 0.0024083172451506473,
+    "approx_sharpe": 5.84657949035167,
+    "max_drawdown_pct": 0.0034420006150515116
+  }
+}
