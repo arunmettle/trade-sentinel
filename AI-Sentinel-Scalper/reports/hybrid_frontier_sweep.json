@@ -1,0 +1,111 @@
+{
+  "tested": 144,
+  "top5": [
+    {
+      "hurdle_multiplier": 2.0,
+      "min_trade_usd": 300,
+      "hysteresis_buffer": 8,
+      "expected_scale": 0.008,
+      "profit_pct": 0.0016514048033668587,
+      "approx_sharpe": 28752.697643680815,
+      "max_drawdown_pct": 0.0,
+      "trade_count": 0,
+      "total_fees_paid": 0.0,
+      "gross_alpha_capture": 0.0,
+      "net_alpha_minus_fees": 0.0
+    },
+    {
+      "hurdle_multiplier": 2.0,
+      "min_trade_usd": 300,
+      "hysteresis_buffer": 10,
+      "expected_scale": 0.008,
+      "profit_pct": 0.0016514048033668587,
+      "approx_sharpe": 28752.697643680815,
+      "max_drawdown_pct": 0.0,
+      "trade_count": 0,
+      "total_fees_paid": 0.0,
+      "gross_alpha_capture": 0.0,
+      "net_alpha_minus_fees": 0.0
+    },
+    {
+      "hurdle_multiplier": 2.0,
+      "min_trade_usd": 300,
+      "hysteresis_buffer": 12,
+      "expected_scale": 0.008,
+      "profit_pct": 0.0016514048033668587,
+      "approx_sharpe": 28752.697643680815,
+      "max_drawdown_pct": 0.0,
+      "trade_count": 0,
+      "total_fees_paid": 0.0,
+      "gross_alpha_capture": 0.0,
+      "net_alpha_minus_fees": 0.0
+    },
+    {
+      "hurdle_multiplier": 2.0,
+      "min_trade_usd": 300,
+      "hysteresis_buffer": 15,
+      "expected_scale": 0.008,
+      "profit_pct": 0.0016514048033668587,
+      "approx_sharpe": 28752.697643680815,
+      "max_drawdown_pct": 0.0,
+      "trade_count": 0,
+      "total_fees_paid": 0.0,
+      "gross_alpha_capture": 0.0,
+      "net_alpha_minus_fees": 0.0
+    },
+    {
+      "hurdle_multiplier": 2.0,
+      "min_trade_usd": 400,
+      "hysteresis_buffer": 8,
+      "expected_scale": 0.008,
+      "profit_pct": 0.0016514048033668587,
+      "approx_sharpe": 28752.697643680815,
+      "max_drawdown_pct": 0.0,
+      "trade_count": 0,
+      "total_fees_paid": 0.0,
+      "gross_alpha_capture": 0.0,
+      "net_alpha_minus_fees": 0.0
+    }
+  ],
+  "bottom3": [
+    {
+      "hurdle_multiplier": 1.5,
+      "min_trade_usd": 300,
+      "hysteresis_buffer": 10,
+      "expected_scale": 0.008,
+      "profit_pct": -0.0060775199180998244,
+      "approx_sharpe": -10.104497765895033,
+      "max_drawdown_pct": 0.009437768358552145,
+      "trade_count": 2,
+      "total_fees_paid": 0.6760691749767702,
+      "gross_alpha_capture": 0.2328554734040918,
+      "net_alpha_minus_fees": -0.4432137015726784
+    },
+    {
+      "hurdle_multiplier": 1.5,
+      "min_trade_usd": 300,
+      "hysteresis_buffer": 12,
+      "expected_scale": 0.008,
+      "profit_pct": -0.0060775199180998244,
+      "approx_sharpe": -10.104497765895033,
+      "max_drawdown_pct": 0.009437768358552145,
+      "trade_count": 2,
+      "total_fees_paid": 0.6760691749767702,
+      "gross_alpha_capture": 0.2328554734040918,
+      "net_alpha_minus_fees": -0.4432137015726784
+    },
+    {
+      "hurdle_multiplier": 1.5,
+      "min_trade_usd": 300,
+      "hysteresis_buffer": 15,
+      "expected_scale": 0.008,
+      "profit_pct": -0.0060775199180998244,
+      "approx_sharpe": -10.104497765895033,
+      "max_drawdown_pct": 0.009437768358552145,
+      "trade_count": 2,
+      "total_fees_paid": 0.6760691749767702,
+      "gross_alpha_capture": 0.2328554734040918,
+      "net_alpha_minus_fees": -0.4432137015726784
+    }
+  ]
+}
