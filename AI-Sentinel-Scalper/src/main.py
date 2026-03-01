@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
 
 from src.hybrid_manager import HybridManager
 from src.sentiment_agent import compute_market_pulse, write_gate
+from src.validator import maybe_validate_startup
 
 LOG = logging.getLogger("orchestrator")
 
@@ -80,6 +82,29 @@ def run_once(base_dir: Path, headlines: list[str] | None = None) -> dict:
 
 def run_loop(base_dir: Path) -> None:
     cfg = load_runtime_config(base_dir)
+
+    # Netting mode preflight (required for hybrid delta-tilt semantics)
+    with (base_dir / "config" / "live_config.json").open("r", encoding="utf-8") as f:
+        live = json.load(f)
+    dry_run = bool(live.get("runtime", {}).get("dry_run", True))
+    symbol = live.get("symbol", "BTC/USDT:USDT")
+
+    if not dry_run:
+        import ccxt  # type: ignore
+
+        ex = ccxt.bybit(
+            {
+                "apiKey": os.getenv("BYBIT_API_KEY"),
+                "secret": os.getenv("BYBIT_API_SECRET"),
+                "enableRateLimit": True,
+                "options": {"defaultType": "future"},
+            }
+        )
+        if bool(live.get("exchange", {}).get("testnet", True)):
+            ex.set_sandbox_mode(True)
+        if not maybe_validate_startup(ex, symbol, dry_run=False):
+            raise RuntimeError("Startup preflight failed: account must be in Netting/One-Way mode")
+
     LOG.info("orchestrator started | loop=%ss", cfg.loop_seconds)
     while True:
         state = run_once(base_dir)

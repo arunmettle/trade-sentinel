@@ -57,6 +57,7 @@ PYTHONPATH=. .venv/bin/python scripts/watch_sentiment.py
 
 - Uses watchdog observer when available (falls back to mtime polling).
 - Applies hysteresis (`80` on / `75` off) + minimum trade notional guard.
+- Applies API weight guard: max one sync per 30s unless score jump > 20.
 
 ### Dashboard
 
@@ -70,6 +71,7 @@ streamlit run dashboard.py
 - Orchestrator loop alive: inspect `logs/runtime_state.json`
 - Sentiment gate written: inspect `config/sentiment_gate.json`
 - Dry run mode: `config/live_config.json -> runtime.dry_run`
+- Live mode preflight: orchestrator startup must pass Bybit Netting/One-Way mode check (fails fast otherwise)
 
 ## 4) Incident procedures
 
