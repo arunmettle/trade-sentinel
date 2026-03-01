@@ -36,6 +36,7 @@ def load_cfg(base: Path) -> SyncConfig:
         symbol=live.get("symbol", "BTC/USDT:USDT"),
         sentiment_gate_path=base / live.get("paths", {}).get("sentiment_gate", "config/sentiment_gate.json"),
         runtime_state_path=base / live.get("paths", {}).get("runtime_state", "logs/runtime_state.json"),
+        pairs_registry_path=base / live.get("paths", {}).get("pairs_registry", "config/pairs_registry.json"),
         hysteresis_on=float(live.get("hybrid", {}).get("hysteresis_on", 80)),
         hysteresis_off=float(live.get("hybrid", {}).get("hysteresis_off", 75)),
         min_trade_usd=float(live.get("hybrid", {}).get("min_trade_usd", 100)),

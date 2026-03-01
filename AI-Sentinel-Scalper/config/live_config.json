@@ -23,6 +23,7 @@
   },
   "paths": {
     "risk_limits": "config/risk_limits.json",
+    "pairs_registry": "config/pairs_registry.json",
     "sentiment_gate": "config/sentiment_gate.json",
     "strategy": "config/live_strategy.json",
     "guardian_state": "logs/guardian_state.json",

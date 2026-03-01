@@ -1,0 +1,26 @@
+{
+  "BTC/USDT:USDT": {
+    "max_tilt": 0.4,
+    "hysteresis_buffer": 5,
+    "min_trade_usd": 200,
+    "drift_threshold": 0.01,
+    "weight": 0.4,
+    "enabled": true
+  },
+  "SOL/USDT:USDT": {
+    "max_tilt": 0.6,
+    "hysteresis_buffer": 8,
+    "min_trade_usd": 100,
+    "drift_threshold": 0.015,
+    "weight": 0.35,
+    "enabled": true
+  },
+  "LINK/USDT:USDT": {
+    "max_tilt": 0.3,
+    "hysteresis_buffer": 5,
+    "min_trade_usd": 100,
+    "drift_threshold": 0.01,
+    "weight": 0.25,
+    "enabled": true
+  }
+}

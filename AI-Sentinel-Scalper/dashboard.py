@@ -52,8 +52,10 @@ with col2:
 with col3:
     st.metric("Lock Threshold", f"{guardian.get('lock_threshold', 0):.2%}" if guardian.get("lock_threshold") is not None else "n/a")
 with col4:
-    drift_val = ((guardian.get("drift_check") or {}).get("drift"))
-    st.metric("Drift Meter", f"{drift_val:.2%}" if isinstance(drift_val, (int, float)) else "n/a")
+    checks = guardian.get("drift_checks") or {}
+    drift_vals = [v.get("drift") for v in checks.values() if isinstance(v, dict) and isinstance(v.get("drift"), (int, float))]
+    drift_val = max(drift_vals) if drift_vals else None
+    st.metric("Drift Meter (max)", f"{drift_val:.2%}" if isinstance(drift_val, (int, float)) else "n/a")
 
 # Placeholder equity curve until trade history wiring lands
 curve = pd.DataFrame(

@@ -1,10 +1,10 @@
-"""Guardian module.
+"""Guardian module (multi-pair aware).
 
 Safety-critical watchdog:
 - captures baseline equity
 - monitors drawdown
 - triggers kill-switch (cancel orders + flatten positions)
-- performs emergency delta-drift rebalance for hybrid mode
+- performs emergency delta-drift rebalance for hybrid mode per active pair
 - persists machine-readable state for dashboard/orchestrator
 """
 
@@ -38,6 +38,7 @@ class GuardianConfig:
     max_spread_for_rebalance: float = 0.001
     runtime_state_path: Path = Path("logs/runtime_state.json")
     rebalance_log_path: Path = Path("logs/rebalance_events.csv")
+    pairs_registry_path: Path = Path("config/pairs_registry.json")
 
 
 class Guardian:
@@ -66,10 +67,7 @@ class Guardian:
     def _ensure_exchange(self) -> None:
         if self.exchange is not None:
             return
-        try:
-            import ccxt  # type: ignore
-        except ImportError as exc:
-            raise RuntimeError("ccxt is required for live mode. Install with: pip install ccxt") from exc
+        import ccxt  # type: ignore
 
         if self.config.exchange_name.lower() != "bybit":
             raise ValueError("Only bybit exchange is supported in phase 1")
@@ -139,7 +137,6 @@ class Guardian:
     def emergency_flatten(self, reason: str) -> None:
         LOG.warning("EMERGENCY FLATTEN TRIGGERED: %s", reason)
         if self.config.dry_run:
-            LOG.warning("dry_run=true -> simulated cancel/flatten only")
             self.active = False
             self.persist_state({"ts": int(time.time()), "event": "killswitch", "dry_run": True, "reason": reason})
             return
@@ -149,37 +146,42 @@ class Guardian:
         self.active = False
         self.persist_state({"ts": int(time.time()), "event": "killswitch", "dry_run": False, "reason": reason})
 
-    def _read_target_delta(self) -> float:
+    def _read_runtime_state(self) -> dict:
         if not self.config.runtime_state_path.exists():
-            return 0.0
+            return {}
         try:
-            state = json.loads(self.config.runtime_state_path.read_text(encoding="utf-8"))
-            return float((state.get("hybrid") or {}).get("target_delta", 0.0))
+            return json.loads(self.config.runtime_state_path.read_text(encoding="utf-8"))
         except Exception:
-            return 0.0
+            return {}
 
-    def _fetch_spot_and_perp_qty(self) -> tuple[float, float]:
+    def _read_registry(self) -> dict:
+        if not self.config.pairs_registry_path.exists():
+            return {self.config.symbol: {"enabled": True}}
+        try:
+            return json.loads(self.config.pairs_registry_path.read_text(encoding="utf-8"))
+        except Exception:
+            return {self.config.symbol: {"enabled": True}}
+
+    def _fetch_spot_and_perp_qty(self, symbol: str) -> tuple[float, float]:
         if self.config.dry_run:
-            # simulation knobs for testing
-            spot = float(os.getenv("GUARDIAN_STUB_SPOT_QTY", "1.0"))
-            perp = float(os.getenv("GUARDIAN_STUB_PERP_QTY", "1.0"))
+            s = symbol.split("/")[0]
+            spot = float(os.getenv(f"GUARDIAN_STUB_SPOT_QTY_{s}", os.getenv("GUARDIAN_STUB_SPOT_QTY", "1.0")))
+            perp = float(os.getenv(f"GUARDIAN_STUB_PERP_QTY_{s}", os.getenv("GUARDIAN_STUB_PERP_QTY", "1.0")))
             return spot, perp
 
         self._ensure_exchange()
         bal = self.exchange.fetch_balance()
-        base = self.config.symbol.split("/")[0]
+        base = symbol.split("/")[0]
         spot_qty = float((bal.get("total") or {}).get(base, 0) or 0)
-        positions = self.exchange.fetch_positions([self.config.symbol])
-        perp_qty = 0.0
-        if positions:
-            perp_qty = abs(float(positions[0].get("contracts") or 0))
+        positions = self.exchange.fetch_positions([symbol])
+        perp_qty = abs(float(positions[0].get("contracts") or 0)) if positions else 0.0
         return spot_qty, perp_qty
 
-    def _fetch_spread(self) -> float:
+    def _fetch_spread(self, symbol: str) -> float:
         if self.config.dry_run:
             return float(os.getenv("GUARDIAN_STUB_SPREAD", "0.0002"))
         self._ensure_exchange()
-        ob = self.exchange.fetch_order_book(self.config.symbol, limit=5)
+        ob = self.exchange.fetch_order_book(symbol, limit=5)
         bid = float(ob["bids"][0][0]) if ob.get("bids") else 0
         ask = float(ob["asks"][0][0]) if ob.get("asks") else 0
         if bid <= 0 or ask <= 0:
@@ -194,47 +196,36 @@ class Guardian:
         with p.open("a", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(
                 f,
-                fieldnames=["ts", "target_delta", "actual_delta", "drift", "action", "qty", "spread", "dry_run"],
+                fieldnames=["ts", "symbol", "target_delta", "actual_delta", "drift", "action", "qty", "spread", "dry_run"],
             )
             if not exists:
                 w.writeheader()
             w.writerow(event)
 
-    def check_position_drift(self, target_delta: float) -> dict[str, float | bool | str]:
-        spot_qty, perp_qty = self._fetch_spot_and_perp_qty()
+    def check_position_drift(self, symbol: str, target_delta: float, drift_deadzone: float) -> dict[str, float | bool | str]:
+        spot_qty, perp_qty = self._fetch_spot_and_perp_qty(symbol)
         if spot_qty <= 0:
-            return {"checked": False, "reason": "no_spot"}
+            return {"checked": False, "symbol": symbol, "reason": "no_spot"}
 
         actual_delta = (spot_qty - perp_qty) / spot_qty
         drift = abs(actual_delta - target_delta)
-        spread = self._fetch_spread()
+        spread = self._fetch_spread(symbol)
 
-        if drift <= self.config.drift_deadzone:
-            return {"checked": True, "rebalanced": False, "actual_delta": actual_delta, "drift": drift}
+        if drift <= drift_deadzone:
+            return {"checked": True, "symbol": symbol, "rebalanced": False, "actual_delta": actual_delta, "drift": drift}
         if spread > self.config.max_spread_for_rebalance:
-            return {
-                "checked": True,
-                "rebalanced": False,
-                "actual_delta": actual_delta,
-                "drift": drift,
-                "reason": "spread_too_wide",
-            }
+            return {"checked": True, "symbol": symbol, "rebalanced": False, "actual_delta": actual_delta, "drift": drift, "reason": "spread_too_wide"}
 
         diff_qty = abs(spot_qty * (actual_delta - target_delta))
         side = "sell" if actual_delta > target_delta else "buy"
 
         if not self.config.dry_run:
             self._ensure_exchange()
-            self.exchange.create_order(
-                symbol=self.config.symbol,
-                type="market",
-                side=side,
-                amount=diff_qty,
-                params={"reduceOnly": False},
-            )
+            self.exchange.create_order(symbol, "market", side, diff_qty, params={"reduceOnly": False})
 
         event = {
             "ts": int(time.time()),
+            "symbol": symbol,
             "target_delta": round(target_delta, 6),
             "actual_delta": round(actual_delta, 6),
             "drift": round(drift, 6),
@@ -254,35 +245,40 @@ class Guardian:
     def run(self) -> None:
         self.startup_self_check()
         self.start_equity = self.fetch_total_equity()
-        LOG.info("guardian started | symbol=%s | start_equity=%.4f", self.config.symbol, self.start_equity)
+        LOG.info("guardian started | start_equity=%.4f", self.start_equity)
 
         while self.active:
             try:
                 current = self.fetch_total_equity()
                 dd = self.compute_drawdown(current)
 
-                target_delta = self._read_target_delta()
-                drift_info = self.check_position_drift(target_delta)
+                runtime = self._read_runtime_state()
+                registry = self._read_registry()
+                hybrid_map = runtime.get("hybrid") if isinstance(runtime.get("hybrid"), dict) else {}
+
+                drift_checks = {}
+                for symbol, cfg in registry.items():
+                    if not bool(cfg.get("enabled", True)):
+                        continue
+                    target_delta = float((hybrid_map.get(symbol) or {}).get("target_delta", 0.0))
+                    drift_deadzone = float(cfg.get("drift_threshold", self.config.drift_deadzone))
+                    drift_checks[symbol] = self.check_position_drift(symbol, target_delta, drift_deadzone)
+                    time.sleep(0.5)
 
                 state = {
                     "ts": int(time.time()),
-                    "symbol": self.config.symbol,
                     "start_equity": self.start_equity,
                     "current_equity": current,
                     "drawdown": dd,
                     "lock_threshold": self.config.daily_equity_lock_pct,
                     "dry_run": self.config.dry_run,
                     "status": "monitoring",
-                    "target_delta": target_delta,
-                    "drift_check": drift_info,
+                    "drift_checks": drift_checks,
                 }
                 self.persist_state(state)
-                LOG.info("monitor | equity=%.4f drawdown=%.4f target_delta=%.3f", current, dd, target_delta)
 
                 if dd >= self.config.daily_equity_lock_pct:
-                    self.emergency_flatten(
-                        f"drawdown {dd:.4f} >= threshold {self.config.daily_equity_lock_pct:.4f}"
-                    )
+                    self.emergency_flatten(f"drawdown {dd:.4f} >= threshold {self.config.daily_equity_lock_pct:.4f}")
                     break
 
                 time.sleep(self.config.loop_seconds)
@@ -296,12 +292,9 @@ def load_config(base_dir: Path) -> GuardianConfig:
     if not live_cfg_path.exists():
         live_cfg_path = base_dir / "config" / "live_config.example.json"
 
-    with live_cfg_path.open("r", encoding="utf-8") as f:
-        live = json.load(f)
-
+    live = json.loads(live_cfg_path.read_text(encoding="utf-8"))
     risk_path = base_dir / live.get("paths", {}).get("risk_limits", "config/risk_limits.json")
-    with risk_path.open("r", encoding="utf-8") as f:
-        risk = json.load(f)
+    risk = json.loads(risk_path.read_text(encoding="utf-8"))
 
     return GuardianConfig(
         symbol=live.get("symbol", "BTC/USDT:USDT"),
@@ -318,11 +311,11 @@ def load_config(base_dir: Path) -> GuardianConfig:
         max_spread_for_rebalance=float(live.get("runtime", {}).get("max_spread_for_rebalance", 0.001)),
         runtime_state_path=base_dir / live.get("paths", {}).get("runtime_state", "logs/runtime_state.json"),
         rebalance_log_path=base_dir / live.get("paths", {}).get("rebalance_log", "logs/rebalance_events.csv"),
+        pairs_registry_path=base_dir / live.get("paths", {}).get("pairs_registry", "config/pairs_registry.json"),
     )
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
     root = Path(__file__).resolve().parents[1]
-    cfg = load_config(root)
-    Guardian(cfg).run()
+    Guardian(load_config(root)).run()

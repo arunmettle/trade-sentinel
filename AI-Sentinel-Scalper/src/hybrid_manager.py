@@ -15,8 +15,9 @@ class HybridPolicy:
 
 
 class HybridManager:
-    def __init__(self, gate_path: str | Path, policy: HybridPolicy | None = None) -> None:
+    def __init__(self, gate_path: str | Path, registry_path: str | Path | None = None, policy: HybridPolicy | None = None) -> None:
         self.gate_path = Path(gate_path)
+        self.registry_path = Path(registry_path) if registry_path else None
         self.policy = policy or HybridPolicy()
 
     def _read_gate(self) -> dict:
@@ -27,13 +28,31 @@ class HybridManager:
         except Exception:
             return {"score": 50, "status": "CAUTIOUS", "allow_trading": True}
 
-    def compute_target_delta(self) -> dict:
+    def _read_registry(self) -> dict:
+        if not self.registry_path or not self.registry_path.exists():
+            return {}
+        try:
+            return json.loads(self.registry_path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    def _score_for_symbol(self, gate: dict, symbol: str) -> float:
+        scores = gate.get("scores")
+        if isinstance(scores, dict) and symbol in scores:
+            return float(scores[symbol])
+        return float(gate.get("score", 50))
+
+    def compute_target_delta_for_symbol(self, symbol: str) -> dict:
         gate = self._read_gate()
-        score = float(gate.get("score", 50))
+        registry = self._read_registry()
+        pair_cfg = registry.get(symbol, {})
+
+        score = self._score_for_symbol(gate, symbol)
         funding_rate = float(gate.get("funding_rate", 0.0))
         score_drop_1h = float(gate.get("score_drop_1h", 0.0))
 
-        # capital preservation overrides
+        max_tilt = float(pair_cfg.get("max_tilt", self.policy.max_tilt))
+
         if score < self.policy.panic_score or score_drop_1h >= self.policy.sentiment_drop_rehedge_points:
             hedge_ratio = 1.0
             mode = "PANIC_REHEDGE"
@@ -41,7 +60,7 @@ class HybridManager:
             hedge_ratio = 1.0
             mode = "MAX_FUNDING"
         elif score > 50:
-            tilt = ((score - 50) / 50) * self.policy.max_tilt
+            tilt = ((score - 50) / 50) * max_tilt
             hedge_ratio = max(0.0, min(1.0, self.policy.base_hedge - tilt))
             mode = "BULLISH_TILT"
         else:
@@ -50,10 +69,25 @@ class HybridManager:
 
         target_delta = round(1.0 - hedge_ratio, 4)
         return {
+            "symbol": symbol,
             "score": score,
             "funding_rate": funding_rate,
             "score_drop_1h": score_drop_1h,
             "target_delta": target_delta,
             "target_hedge_ratio": round(hedge_ratio, 4),
             "hybrid_mode": mode,
+            "pair_cfg": pair_cfg,
         }
+
+    def compute_targets(self) -> dict:
+        registry = self._read_registry()
+        if not registry:
+            # fallback single-symbol style
+            return {"default": self.compute_target_delta_for_symbol("BTC/USDT:USDT")}
+
+        out = {}
+        for symbol, cfg in registry.items():
+            if not bool(cfg.get("enabled", True)):
+                continue
+            out[symbol] = self.compute_target_delta_for_symbol(symbol)
+        return out
