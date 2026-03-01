@@ -1,0 +1,28 @@
+module.exports = {
+  apps: [
+    {
+      name: 'GEMINI_BOT',
+      script: 'src/main.py',
+      cwd: '/home/arun/.openclaw/workspace/AI-Sentinel-Scalper',
+      interpreter: '/home/arun/.openclaw/workspace/AI-Sentinel-Scalper/.venv/bin/python',
+      env: {
+        PYTHONPATH: '.',
+      },
+      autorestart: true,
+      max_restarts: 10,
+      restart_delay: 2000,
+    },
+    {
+      name: 'GEMINI_DASH',
+      script: '/home/arun/.openclaw/workspace/AI-Sentinel-Scalper/.venv/bin/python',
+      args: '-m streamlit run dashboard.py --server.headless true --server.port 8501',
+      cwd: '/home/arun/.openclaw/workspace/AI-Sentinel-Scalper',
+      env: {
+        PYTHONPATH: '.',
+      },
+      autorestart: true,
+      max_restarts: 10,
+      restart_delay: 2000,
+    },
+  ],
+};

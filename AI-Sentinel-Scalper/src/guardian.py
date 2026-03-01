@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
+from src.notifications import send_telegram_alert
+
 LOG = logging.getLogger("guardian")
 
 
@@ -47,6 +49,7 @@ class Guardian:
         self.exchange = exchange
         self.start_equity: float | None = None
         self.active = True
+        self.high_drift_cycles: dict[str, int] = {}
 
     def startup_self_check(self) -> None:
         if self.config.daily_equity_lock_pct <= 0:
@@ -348,6 +351,20 @@ class Guardian:
                     target_delta = float((hybrid_map.get(symbol) or {}).get("target_delta", 0.0))
                     drift_deadzone = float(cfg.get("drift_threshold", self.config.drift_deadzone))
                     drift_checks[symbol] = self.check_position_drift(symbol, target_delta, drift_deadzone)
+
+                    # Alert when drift > 5% for 3 consecutive cycles
+                    d = float((drift_checks[symbol] or {}).get("drift") or 0.0)
+                    if d > 0.05:
+                        self.high_drift_cycles[symbol] = self.high_drift_cycles.get(symbol, 0) + 1
+                    else:
+                        self.high_drift_cycles[symbol] = 0
+
+                    if self.high_drift_cycles.get(symbol, 0) >= 3:
+                        send_telegram_alert(
+                            f"⚠️ High Drift detected on {symbol}: {d:.2%}. Attempting Persistent Close / Rebalance."
+                        )
+                        self.high_drift_cycles[symbol] = 0
+
                     time.sleep(0.5)
 
                 state = {
@@ -362,7 +379,15 @@ class Guardian:
                 }
                 self.persist_state(state)
 
+                if dd >= 0.10:
+                    send_telegram_alert("🚨 Stop Loss Hit (>10% drawdown). Closing all positions and shutting down.")
+                    self.emergency_flatten("drawdown >= 10% emergency shutdown")
+                    break
+
                 if dd >= self.config.daily_equity_lock_pct:
+                    send_telegram_alert(
+                        f"⚠️ Daily equity lock triggered: drawdown {dd:.2%} >= {self.config.daily_equity_lock_pct:.2%}."
+                    )
                     self.emergency_flatten(f"drawdown {dd:.4f} >= threshold {self.config.daily_equity_lock_pct:.4f}")
                     break
 
