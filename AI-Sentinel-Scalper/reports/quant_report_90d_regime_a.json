@@ -1,0 +1,17 @@
+{
+  "strategy_id": "regime_a_90d",
+  "period": {
+    "start": "2025-12-01T07:55:00+00:00",
+    "end": "2026-03-01T07:54:00+00:00"
+  },
+  "metrics": {
+    "net_profit_pct": 2023.4592253693947,
+    "max_drawdown_pct": 0.17677291089369124,
+    "sharpe_ratio": 35.79605356353879,
+    "profit_factor": 1.7776705543392706,
+    "win_rate": 0.5328313780423743,
+    "trade_count": 5711
+  },
+  "verdict": "hold",
+  "observation": "Vectorized backtest with clipped minute-return outlier handling and trade-level win-rate. Strategy contract applied."
+}

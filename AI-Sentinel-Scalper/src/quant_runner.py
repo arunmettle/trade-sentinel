@@ -44,6 +44,7 @@ def run_vectorized_backtest(
     fee_pct: float = 0.0006,
     slippage_pct: float = 0.0002,
     max_abs_ret: float = 0.10,
+    strategy: dict | None = None,
 ) -> QuantReport:
     import numpy as np
     import pandas as pd
@@ -56,11 +57,15 @@ def run_vectorized_backtest(
     returns = close.pct_change().fillna(0.0)
     returns = _sanitize_returns(returns, max_abs_ret=max_abs_ret)
 
-    # Baseline signal: momentum proxy (replace with Architect strategy wiring later)
-    momentum = returns.rolling(14).mean().fillna(0)
-    signal = np.where(momentum > 0, 1.0, 0.0)
+    if strategy is None:
+        # Baseline fallback: simple momentum proxy
+        momentum = returns.rolling(14).mean().fillna(0)
+        signal = np.where(momentum > 0, 1.0, 0.0)
+        signal_s = pd.Series(signal, index=df.index, dtype="float64")
+    else:
+        from src.strategy_engine import build_signal
 
-    signal_s = pd.Series(signal, index=df.index, dtype="float64")
+        signal_s = build_signal(df, strategy).astype("float64")
     prev_signal = signal_s.shift(1).fillna(0.0)
     entries = (signal_s == 1.0) & (prev_signal == 0.0)
     exits = (signal_s == 0.0) & (prev_signal == 1.0)
@@ -120,8 +125,8 @@ def run_vectorized_backtest(
         ),
         verdict=verdict,
         observation=(
-            "Vectorized baseline with clipped minute-return outlier handling and trade-level win-rate. "
-            "Replace signal with strategy contract input for production."
+            "Vectorized backtest with clipped minute-return outlier handling and trade-level win-rate. "
+            + ("Strategy contract applied." if strategy is not None else "Baseline momentum fallback used.")
         ),
     )
     return report

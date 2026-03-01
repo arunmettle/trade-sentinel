@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.gate_evaluator import evaluate_backtest
 from src.quant_runner import run_vectorized_backtest, save_report
+from src.strategy_engine import load_strategy
 
 
 def main() -> int:
@@ -15,9 +16,11 @@ def main() -> int:
     ap.add_argument("--strategy-id", default="phase1_backtest")
     ap.add_argument("--out", default="reports/quant_report.json")
     ap.add_argument("--summary", default="reports/backtest_summary.md")
+    ap.add_argument("--strategy", default="", help="Optional strategy JSON path")
     args = ap.parse_args()
 
-    report = run_vectorized_backtest(args.csv, strategy_id=args.strategy_id)
+    strategy = load_strategy(args.strategy) if args.strategy else None
+    report = run_vectorized_backtest(args.csv, strategy_id=args.strategy_id, strategy=strategy)
     save_report(report, args.out)
 
     gate = evaluate_backtest(report.metrics.sharpe_ratio, report.metrics.max_drawdown_pct)
